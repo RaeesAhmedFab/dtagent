@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
+import ProfileCard from "@/components/settings/ProfileCard";
+import UpdatePasswordCard from "@/components/settings/UpdatePasswordCard";
 import AISummarizationCard from "@/components/settings/AISummarizationCard";
 import ScrapeScheduleCard from "@/components/settings/ScrapeScheduleCard";
 import AgentRateLimitsCard from "@/components/settings/AgentRateLimitsCard";
+import ApiCredentialsCard from "@/components/settings/ApiCredentialsCard";
 import SecurityCard from "@/components/settings/SecurityCard";
 import DangerZoneCard from "@/components/settings/DangerZoneCard";
 
@@ -27,6 +30,10 @@ const Settings = () => {
 
   return (
     <div className="">
+      <ProfileCard />
+
+      <UpdatePasswordCard />
+
       <AISummarizationCard
         aiModel={aiModel}
         setAiModel={setAiModel}
@@ -55,6 +62,8 @@ const Settings = () => {
         dayCap={dayCap}
         setDayCap={setDayCap}
       />
+
+      <ApiCredentialsCard />
 
       <SecurityCard />
 

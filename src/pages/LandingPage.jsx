@@ -30,7 +30,7 @@ const LandingPage = () => {
           <Button onClick={() => navigate('/member/dailydigest')} className="bg-primary text-white hover:bg-[#003165] py-2 px-2 cursor-pointer " >
             Sign in with DTA
           </Button>
-          <Button onClick={() => navigate('/admin/dashboard')} className="bg-white text-foreground border border-gray-200 hover:border-[#003165] py-2 px-2 cursor-pointer" >
+          <Button onClick={() => navigate('/login')} className="bg-white text-foreground border border-gray-200 hover:border-[#003165] py-2 px-2 cursor-pointer" >
             <Shield /> Continue as DTA Staff
           </Button>
 

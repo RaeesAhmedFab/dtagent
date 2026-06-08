@@ -79,7 +79,7 @@ export const DigestSidebar = () => (
       </p>
       <Card className="flex flex-col gap-2 p-3">
         {TRENDING_CATS.map(c => (
-          <div key={c.name} className="flex items-center justify-between">
+          <div key={c.name} className="flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors rounded px-2 py-1 ">
             <span className={`text-[11px] font-semibold border rounded px-2 py-0.5 ${c.style}`}>
               {c.name}
             </span>

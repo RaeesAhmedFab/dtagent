@@ -14,12 +14,18 @@ import Settings from './pages/admin/Settings'
 import MemberSettings from './pages/memeber/MemberSettings'
 import Alertpreferences from './pages/memeber/Alertpreferences'
 import AskAgentChart from './pages/memeber/AskAgentChart'
+import AdminLogin from './pages/auth/AdminLogin'
+import ForgetPassword from './pages/auth/ForgetPassword'
+import ResetPassword from './pages/auth/ResetPassword'
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path='/' element={<LandingPage />} />
+        <Route path="/login" element={<AdminLogin />} />
+        <Route path="/forgot-password" element={<ForgetPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path='/admin/' element={<SidebarLayout role="admin" />}>
           <Route path='dashboard' element={<AdminDashboard />} />
           <Route path='moderationqueue' element={<Moderationqueue />} />

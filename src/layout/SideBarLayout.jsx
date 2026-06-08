@@ -41,8 +41,10 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import Logo from "@/assets/dtagent.png"
+import Logo from "@/assets/dtagent.png";
 import { AskAgentDrawer } from "../models/AskAgentDrawer";
+// ── NEW: import context ──────────────────────────────────────────
+import { DigestFilterProvider, useDigestFilter } from "../pages/memeber/Digestfiltercontext";
 
 // ─── Nav Configs ──────────────────────────────────────────────────────────────
 
@@ -72,7 +74,7 @@ const admindashbaordNav = [
     label: "Insights",
     items: [
       { key: "analytics", label: "Analytics", badge: null, icon: <ChartLine /> },
-      { key: "alertsystem", label: "Alert system", badge: null, icon: <Mail /> }
+      { key: "alertsystem", label: "Alert system", badge: null, icon: <Mail /> },
     ],
   },
   {
@@ -84,10 +86,9 @@ const admindashbaordNav = [
     ],
   },
 ];
+
 const memberdashbaordNav = [
-
   {
-
     label: "Today",
     items: [
       {
@@ -120,10 +121,7 @@ const memberdashbaordNav = [
       { key: "membersettings", label: "Settings", icon: <Settings /> },
     ],
   },
-]
-
-
-
+];
 
 // ─── Role Config Map ──────────────────────────────────────────────────────────
 
@@ -144,34 +142,118 @@ const ROLE_CONFIG = {
     initials: "MB",
     name: "Member",
     subtitle: "DTA Member",
-    avatarColor: "#2A9D8F"
-  }
+    avatarColor: "#2A9D8F",
+  },
+};
+
+// ── NEW: Category data for inline sidebar filter ──────────────────
+const SIDEBAR_CATEGORIES = [
+  { key: "TECHNOLOGY",  label: "Technology",  count: 2, dot: "bg-blue-600"   },
+  { key: "HYGIENE",     label: "Hygiene",      count: 2, dot: null            },
+  { key: "PRODUCTS",    label: "Products",     count: 1, dot: "bg-orange-500" },
+  { key: "REGULATIONS", label: "Regulations",  count: 4, dot: null            },
+  { key: "CLINICAL",    label: "Clinical",     count: 5, dot: "bg-red-500"    },
+  { key: "BUSINESS",    label: "Business",     count: 4, dot: null            },
+  { key: "MAINSTREAM",  label: "Mainstream",   count: 0, dot: "bg-gray-600"   },
+];
+
+// ── NEW: Inline category filter rendered inside the sidebar ───────
+const SidebarCategoryFilter = () => {
+  const { activeFilters, setActiveFilters } = useDigestFilter();
+  const [jokeRevealed, setJokeRevealed] = useState(false);
+
+  const toggle = (key) => {
+    setActiveFilters((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
+
+  return (
+    <div>
+      {/* Joke of the day */}
+      <div className="mx-3 mb-2 bg-cyan-50 border border-cyan-200 rounded-xl p-3">
+        <p className="text-[10px] font-bold tracking-widest text-cyan-600 uppercase mb-1.5 flex items-center gap-1">
+          😄 Joke of the day
+        </p>
+        <p className="text-[12px] text-gray-700 leading-snug mb-2.5">
+          What do you call a dentist who doesn't like tea?
+        </p>
+        {jokeRevealed && (
+          <p className="text-[11px] text-cyan-700 font-semibold mb-2 italic">
+            Denis!
+          </p>
+        )}
+        <div className="flex gap-1.5 flex-wrap">
+          {!jokeRevealed && (
+            <button
+              onClick={() => setJokeRevealed(true)}
+              className="text-[11px] px-2.5 py-1 border border-cyan-300 text-cyan-700 hover:bg-cyan-100 bg-white rounded-md transition-colors"
+            >
+              Reveal
+            </button>
+          )}
+          <button className="text-[11px] px-2.5 py-1 border border-cyan-300 text-cyan-700 hover:bg-cyan-100 bg-white rounded-md flex items-center gap-1 transition-colors">
+            <Sparkles size={9} /> Ask agent
+          </button>
+        </div>
+      </div>
+
+      {/* Category rows */}
+      <div className="flex flex-col gap-0.5">
+        {SIDEBAR_CATEGORIES.map((cat) => {
+          const isActive = activeFilters.includes(cat.key);
+          return (
+            <button
+              key={cat.key}
+              onClick={() => toggle(cat.key)}
+              className={`flex items-center gap-2.5 px-[18px] py-[8px] w-full text-left transition-all border-l-[3px]
+                ${isActive
+                  ? "border-l-[#0f2d5c] bg-blue-50/80"
+                  : "border-l-transparent hover:bg-accent"
+                }`}
+            >
+              {cat.dot
+                ? <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cat.dot}`} />
+                : <span className="w-2 h-2 flex-shrink-0" />
+              }
+              <span className={`flex-1 text-[13px] font-medium
+                ${isActive ? "text-[#0f2d5c] font-semibold" : "text-foreground"}`}>
+                {cat.label}
+              </span>
+              <span className={`text-[11px] min-w-[20px] text-center rounded-full
+                ${isActive
+                  ? "bg-[#0f2d5c] text-white px-1.5 py-0.5 text-[10px] font-bold"
+                  : "text-muted-foreground"
+                }`}>
+                {cat.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function SidebarLayout({
-  role = "admin",
-}) {
+export default function SidebarLayout({ role = "admin" }) {
 
-  const [openMenus, setOpenMenus] = useState({});
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [openMenus,    setOpenMenus]    = useState({});
+  const [mobileOpen,   setMobileOpen]   = useState(false);
   const [AskAgentOpen, setAskAgentOpen] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate  = useNavigate();
+  const location  = useLocation();
 
   const config = ROLE_CONFIG[role] ?? ROLE_CONFIG.admin;
   const { nav, prefix, avatarColor, name, subtitle } = config;
 
-  // Extract active page from URL path
   const activePage = location.pathname.split('/').pop() || '';
-
 
   const hideAskAgentButton =
     location.pathname === "/member/askagent" ||
     location.pathname.startsWith("/admin");
 
-  // Find active section and item
   const activeSection = nav.find(section =>
     section.items.some(item =>
       item.key === activePage || item.children?.some(child => child.key === activePage)
@@ -182,8 +264,8 @@ export default function SidebarLayout({
     item.key === activePage || item.children?.some(child => child.key === activePage)
   );
 
-  const activeChild = activeItem?.children?.find(child => child.key === activePage);
-  const pageTitle = activeChild?.label || activeItem?.label || '';
+  const activeChild    = activeItem?.children?.find(child => child.key === activePage);
+  const pageTitle      = activeChild?.label || activeItem?.label || '';
 
   const toggleMenu = (key) =>
     setOpenMenus((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -194,7 +276,7 @@ export default function SidebarLayout({
   const SidebarNav = () => (
     <>
       <SidebarHeader className="px-5 py-[22px] pb-4 border-b border-border gap-0">
-        <div className="flex gap-3 mb-5 " >
+        <div className="flex gap-3 mb-5">
           <img src={Logo} alt="Logo" className="w-10 h-10" />
           <div>
             <h1 className="font-semibold">DTAgent</h1>
@@ -203,7 +285,6 @@ export default function SidebarLayout({
             </p>
           </div>
         </div>
-
         <div className="text-[11px] text-muted-foreground mt-0.5">
           STAFF · DTA
         </div>
@@ -217,15 +298,13 @@ export default function SidebarLayout({
             </SidebarGroupLabel>
 
             <SidebarGroupContent>
-              <SidebarMenu>
-                {items.map(
-                  ({
-                    key,
-                    label: itemLabel,
-                    icon,
-                    badge,
-                    children: subItems,
-                  }) => {
+              {/* ── NEW: Replace Categories content with inline filter for member ── */}
+              {role === "member" && label === "Categories" ? (
+                <SidebarCategoryFilter />
+              ) : (
+                <SidebarMenu>
+                  {items.map(({ key, label: itemLabel, icon, badge, children: subItems }) => {
+
                     // ── Item with nested children ──
                     if (subItems?.length) {
                       const childActive = isChildActive(subItems);
@@ -240,10 +319,11 @@ export default function SidebarLayout({
                           <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
                               <SidebarMenuButton
-                                className={`rounded-none border-l-[3px] px-[18px] py-[9px] h-auto text-[13px] font-medium gap-2.5 ${childActive
+                                className={`rounded-none border-l-[3px] px-[18px] py-[9px] h-auto text-[13px] font-medium gap-2.5 ${
+                                  childActive
                                     ? "border-l-[#163d72] bg-[#163d72] text-[#163d72] font-semibold"
                                     : "border-l-transparent"
-                                  }`}
+                                }`}
                               >
                                 {icon}
                                 <span className="flex-1">{itemLabel}</span>
@@ -253,44 +333,36 @@ export default function SidebarLayout({
                                   </SidebarMenuBadge>
                                 )}
                                 <ChevronRight
-                                  className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`}
+                                  className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${
+                                    isOpen ? "rotate-90" : ""
+                                  }`}
                                 />
                               </SidebarMenuButton>
                             </CollapsibleTrigger>
 
                             <CollapsibleContent>
                               <SidebarMenuSub className="ml-0 pl-0 border-l-0">
-                                {subItems.map(
-                                  ({
-                                    key: childKey,
-                                    label: childLabel,
-                                    icon: childIcon,
-                                    badge: childBadge,
-                                  }) => (
-                                    <SidebarMenuSubItem key={childKey}>
-                                      <SidebarMenuSubButton
-                                        isActive={activePage === childKey}
-                                        onClick={() =>
-                                          navigate(`${prefix}/${childKey}`)
-                                        }
-                                        className={`rounded-none border-l-[3px] pl-[36px] pr-[18px] py-[8px] h-auto text-[12.5px] font-medium gap-2 ${activePage === childKey
-                                            ? "border-l-[#163d72] bg-[#163d72] text-[#163d72] cursor-pointer font-semibold"
-                                            : "border-l-transparent"
-                                          }`}
-                                      >
-                                        {childIcon}
-                                        <span className="flex-1">
-                                          {childLabel}
-                                        </span>
-                                        {childBadge && (
-                                          <SidebarMenuBadge className="bg-[#163d72] text-white text-[11px] font-bold rounded-[10px] px-[7px]">
-                                            {childBadge}
-                                          </SidebarMenuBadge>
-                                        )}
-                                      </SidebarMenuSubButton>
-                                    </SidebarMenuSubItem>
-                                  ),
-                                )}
+                                {subItems.map(({ key: childKey, label: childLabel, icon: childIcon, badge: childBadge }) => (
+                                  <SidebarMenuSubItem key={childKey}>
+                                    <SidebarMenuSubButton
+                                      isActive={activePage === childKey}
+                                      onClick={() => navigate(`${prefix}/${childKey}`)}
+                                      className={`rounded-none border-l-[3px] pl-[36px] pr-[18px] py-[8px] h-auto text-[12.5px] font-medium gap-2 ${
+                                        activePage === childKey
+                                          ? "border-l-[#163d72] bg-[#163d72] text-[#163d72] cursor-pointer font-semibold"
+                                          : "border-l-transparent"
+                                      }`}
+                                    >
+                                      {childIcon}
+                                      <span className="flex-1">{childLabel}</span>
+                                      {childBadge && (
+                                        <SidebarMenuBadge className="bg-[#163d72] text-white text-[11px] font-bold rounded-[10px] px-[7px]">
+                                          {childBadge}
+                                        </SidebarMenuBadge>
+                                      )}
+                                    </SidebarMenuSubButton>
+                                  </SidebarMenuSubItem>
+                                ))}
                               </SidebarMenuSub>
                             </CollapsibleContent>
                           </SidebarMenuItem>
@@ -307,10 +379,11 @@ export default function SidebarLayout({
                             navigate(`${prefix}/${key}`);
                             setMobileOpen(false);
                           }}
-                          className={`rounded-none border-l-[4px] px-[18px] py-[9px] h-auto text-[13px] font-medium gap-2.5 ${activePage === key
+                          className={`rounded-none border-l-[4px] px-[18px] py-[9px] h-auto text-[13px] font-medium gap-2.5 ${
+                            activePage === key
                               ? "border-l-[#163d72] bg-[#163d72] text-[#163d72] font-semibold cursor-pointer"
                               : "border-l-transparent cursor-pointer"
-                            }`}
+                          }`}
                         >
                           {icon}
                           <span>{itemLabel}</span>
@@ -322,9 +395,9 @@ export default function SidebarLayout({
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     );
-                  },
-                )}
-              </SidebarMenu>
+                  })}
+                </SidebarMenu>
+              )}
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
@@ -342,107 +415,99 @@ export default function SidebarLayout({
             </AvatarFallback>
           </Avatar>
           <div>
-            <div className="text-[12.5px] font-semibold text-foreground">
-              {name}
-            </div>
-            <div className="text-[11px] text-muted-foreground">
-              {subtitle}
-            </div>
+            <div className="text-[12.5px] font-semibold text-foreground">{name}</div>
+            <div className="text-[11px] text-muted-foreground">{subtitle}</div>
           </div>
         </div>
       </SidebarFooter>
     </>
   );
 
+  // ── NEW: Wrapped with DigestFilterProvider so sidebar + pages share filter state ──
   return (
-    <SidebarProvider>
-      <div className="flex h-screen w-full overflow-hidden">
-        {/* Desktop Sidebar */}
-        <Sidebar collapsible="none" className="hidden lg:flex border-r border-border w-[220px] flex-shrink-0">
-          <SidebarNav />
-        </Sidebar>
+    <DigestFilterProvider>
+      <SidebarProvider>
+        <div className="flex h-screen w-full overflow-hidden">
+          {/* Desktop Sidebar */}
+          <Sidebar collapsible="none" className="hidden lg:flex border-r border-border w-[220px] flex-shrink-0">
+            <SidebarNav />
+          </Sidebar>
 
-        {/* ── Main Area ── */}
-        <div className="flex flex-col flex-1 h-screen overflow-hidden">
-          <header className="h-14 bg-background border-b border-border flex justify-between items-center px-6 gap-3">
-            {/* Mobile Menu Button */}
-            <div className="flex items-center gap-3">
-              <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="lg:hidden">
-                    <Menu className="h-5 w-5" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="p-0 w-[220px]">
-                  <SidebarNav />
-                </SheetContent>
-              </Sheet>
+          {/* ── Main Area ── */}
+          <div className="flex flex-col flex-1 h-screen overflow-hidden">
+            <header className="h-14 bg-background border-b border-border flex justify-between items-center px-6 gap-3">
+              {/* Mobile Menu Button */}
+              <div className="flex items-center gap-3">
+                <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="lg:hidden">
+                      <Menu className="h-5 w-5" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="p-0 w-[220px]">
+                    <SidebarNav />
+                  </SheetContent>
+                </Sheet>
 
-              <div>
-                {activeSection && (
-                  <>
-                    <p className="text-xs text-muted-foreground">
-                      DTAgent / {activeSection.label}
-                    </p>
-                    <h1 className="text-base font-semibold">{pageTitle}</h1>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 cursor-pointer">
-                <Avatar className="w-[34px] h-[34px]">
-                  <AvatarImage />
-                  <AvatarFallback
-                    style={{ backgroundColor: avatarColor }}
-                    className="text-white text-[12px] font-bold"
-                  >
-                    A
-                  </AvatarFallback>
-                </Avatar>
                 <div>
-                  <div className="text-[13px] font-semibold text-foreground">
-                    {name}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">
-                    {subtitle}
-                  </div>
+                  {activeSection && (
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        DTAgent / {activeSection.label}
+                      </p>
+                      <h1 className="text-base font-semibold">{pageTitle}</h1>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => {
-                  navigate("/", { replace: true });
-                }}
-                title="Sign out"
-                className="w-9 h-9 rounded-[9px] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#e63946]"
-              >
-                <LogOut />
-              </Button>
-            </div>
-          </header>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 cursor-pointer">
+                  <Avatar className="w-[34px] h-[34px]">
+                    <AvatarImage />
+                    <AvatarFallback
+                      style={{ backgroundColor: avatarColor }}
+                      className="text-white text-[12px] font-bold"
+                    >
+                      A
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="text-[13px] font-semibold text-foreground">{name}</div>
+                    <div className="text-[11px] text-muted-foreground">{subtitle}</div>
+                  </div>
+                </div>
 
-          {/* Main Content */}
-          <main className="flex-1 overflow-y-auto bg-gray-100 p-4">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => { navigate("/login", { replace: true }); }}
+                  title="Sign out"
+                  className="w-9 h-9 rounded-[9px] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#e63946]"
+                >
+                  <LogOut />
+                </Button>
+              </div>
+            </header>
 
-            {!hideAskAgentButton && (
-              <Button
-                onClick={() => setAskAgentOpen(true)}
-                className="py-5 px-5 rounded-full hover:bg-[#163d72] absolute bottom-20 right-20 cursor-pointer"
-              >
-                <Sparkles size={13} />
-                Ask agent
-              </Button>
-            )}
+            {/* Main Content */}
+            <main className="flex-1 overflow-y-auto bg-gray-100 p-4">
+              {!hideAskAgentButton && (
+                <Button
+                  onClick={() => setAskAgentOpen(true)}
+                  className="py-5 px-5 rounded-full hover:bg-[#163d72] absolute bottom-20 right-20 cursor-pointer"
+                >
+                  <Sparkles size={13} />
+                  Ask agent
+                </Button>
+              )}
+              <Outlet />
+            </main>
+          </div>
 
-            <Outlet />
-          </main>
+          <AskAgentDrawer Open={AskAgentOpen} onClose={setAskAgentOpen} />
         </div>
-        <AskAgentDrawer Open={AskAgentOpen} onClose={setAskAgentOpen} />
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </DigestFilterProvider>
   );
 }

@@ -3,7 +3,6 @@ import CategoryMix from "../../components/CategoryMix";
 import DailyActiveMembers from "../../components/DailyActiveMembers";
 import SourceHealth from "../../components/SourcehealthCard";
 import StatsCards from "../../components/StatsCard"
-
 const generateSparklineData = (trend = "up", points = 10) => {
   let value = 50;
   return Array.from({ length: points }, (_, i) => {
@@ -49,6 +48,8 @@ const statsData = [
 ];
 
 const AdminDashboard = () => {
+
+
   return (
    <div className="grid grid-cols-1 gap-4" >
      <div className="">
