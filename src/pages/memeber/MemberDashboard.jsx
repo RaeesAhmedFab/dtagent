@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -12,23 +12,31 @@ import { useDigestFilter } from "./Digestfiltercontext";
 
 const MemberDashboard = () => {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [detail, setDetail] = useState(null);
   const [tab, setTab] = useState("all");
   const { activeFilters } = useDigestFilter();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const apiFilters = useMemo(() => {
     const filters = { status: "live" };
     if (tab === "trending") {
       filters.ordering = "-read_count";
     }
-    if (search.trim()) {
-      filters.search = search.trim();
+    if (debouncedSearch.trim()) {
+      filters.search = debouncedSearch.trim();
     }
     if (activeFilters.length === 1) {
       filters.category = activeFilters[0].toLowerCase();
     }
     return filters;
-  }, [tab, search, activeFilters]);
+  }, [tab, debouncedSearch, activeFilters]);
 
   const { data: moderationqueue, isLoading } =
     useGetModerationQueueQuery(apiFilters);
