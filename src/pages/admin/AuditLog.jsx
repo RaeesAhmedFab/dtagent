@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Info } from "lucide-react";
+import { Download, Info, Loader2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
+import { useGetAuditLogsQuery, useGetAuditLogsStatsQuery, useLazyGetAuditLogsExportsQuery } from "../../redux/Api/auditLogsApi";
 // ─── Sparkline data ───────────────────────────────────────────────
 const generateSparklineData = (trend = "up", points = 10) => {
   let value = 50;
@@ -29,12 +29,8 @@ const generateSparklineData = (trend = "up", points = 10) => {
   });
 };
 
-const statsData = [
-  { title: "Events today",    value: "8",  change: "across all actors",     trend: "neutral", strokeColor: "#2563eb", data: generateSparklineData("up") },
-  { title: "Content actions", value: "4",  change: "removes + restores",    trend: "neutral", strokeColor: "#16a34a", data: generateSparklineData("up") },
-  { title: "System events",   value: "6",  change: "scrapes + dispatches",  trend: "neutral", strokeColor: "#d97706", data: generateSparklineData("up") },
-  { title: "Config changes",  value: "5",  change: "last 7 days",           trend: "neutral", strokeColor: "#6b7280", data: generateSparklineData("up") },
-];
+const ALL_ACTIONS = ["restore", "settings", "regenerate", "remove", "alert", "scrape", "member", "source"];
+const ALL_ACTORS  = ["system", "Admin", "Jane Smith", "John Doe"];
 
 // ─── Action badge styles ──────────────────────────────────────────
 const actionStyles = {
@@ -48,37 +44,60 @@ const actionStyles = {
   SOURCE:   "bg-orange-100 text-orange-700 border-orange-200",
 };
 
-// ─── Log data ─────────────────────────────────────────────────────
-const LOG_DATA = [
-  { time: "Today 10:14 AM", actor: "Jaclyn Morales", init: "JM", isSystem: false, action: "REMOVE",   title: "Article #8 — OSHA cites three NY practices...",              detail: "Moved to removed queue" },
-  { time: "Today 9:58 AM",  actor: "System",         init: "SY", isSystem: true,  action: "SCRAPE",   title: "All sources — scheduled run",                                detail: "92 articles ingested · DDH failed (selector miss)" },
-  { time: "Today 9:41 AM",  actor: "Jaclyn Morales", init: "JM", isSystem: false, action: "RESTORE",  title: "Article #5 — Silver diamine fluoride coverage...",           detail: "Restored from removed queue" },
-  { time: "Today 9:12 AM",  actor: "Tyler Chen",     init: "TC", isSystem: false, action: "SETTINGS", title: "AI model — changed from gpt-4-turbo to gpt-4o",              detail: "Summary generation model updated" },
-  { time: "Today 8:31 AM",  actor: "System",         init: "SY", isSystem: true,  action: "ALERT",    title: "Daily email digest — 5,842 recipients",                      detail: "5,820 delivered · 22 bounced · 8:00 AM EST dispatch" },
-  { time: "Today 8:31 AM",  actor: "System",         init: "SY", isSystem: true,  action: "ALERT",    title: "Daily SMS alert — 1,944 recipients",                         detail: "1,941 delivered · 3 retried · 2 STOPs received" },
-  { time: "Today 8:00 AM",  actor: "System",         init: "SY", isSystem: true,  action: "SCRAPE",   title: "Pre-dispatch scrape — all sources",                          detail: "4 new articles added before 8 AM send" },
-  { time: "Today 6:02 AM",  actor: "Jaclyn Morales", init: "JM", isSystem: false, action: "REGEN",    title: "Article #1 — ADA releases updated infection-control guidance...", detail: "AI summary regenerated (word count: 142 → 98)" },
-  { time: "May 5 11:48 PM", actor: "System",         init: "SY", isSystem: true,  action: "SCRAPE",   title: "Scheduled overnight run",                                    detail: "87 articles ingested · all sources healthy" },
-  { time: "May 5 3:12 PM",  actor: "Tyler Chen",     init: "TC", isSystem: false, action: "MEMBER",   title: "New member — Lisa Nguyen RDH (Standard tier)",               detail: "Account created via SSO sync" },
-  { time: "May 5 2:44 PM",  actor: "Jaclyn Morales", init: "JM", isSystem: false, action: "SOURCE",   title: "Dimensions of Dental Hygiene — scraper config updated",      detail: "Selector updated: article.post-block → div.entry" },
-  { time: "May 5 1:20 PM",  actor: "Tyler Chen",     init: "TC", isSystem: false, action: "SETTINGS", title: "Alert system — weekly roundup re-enabled",                   detail: "Was disabled 2026-04-28 for template review" },
-  { time: "May 4 8:00 AM",  actor: "System",         init: "SY", isSystem: true,  action: "ALERT",    title: "Daily email digest — 5,840 recipients",                      detail: "5,818 delivered · 22 bounced" },
-  { time: "May 4 7:42 AM",  actor: "Jaclyn Morales", init: "JM", isSystem: false, action: "REMOVE",   title: "Article #34 — Off-topic mainstream item",                    detail: "Moved to removed queue — not dental-adjacent" },
-  { time: "May 3 4:11 PM",  actor: "Tyler Chen",     init: "TC", isSystem: false, action: "MEMBER",   title: "Member suspended — inactive account (90d)",                  detail: "Account: inactive_user_029 · auto-suspend rule" },
-];
-
-const ALL_ACTIONS = ["REMOVE", "SCRAPE", "RESTORE", "SETTINGS", "ALERT", "REGEN", "MEMBER", "SOURCE"];
-const ALL_ACTORS  = ["Jaclyn Morales", "Tyler Chen", "System"];
-
 // ─── Component ────────────────────────────────────────────────────
 const AuditLog = () => {
   const [actionFilter, setActionFilter] = useState("all");
   const [actorFilter,  setActorFilter]  = useState("all");
+  const {data:auditlogsStats} = useGetAuditLogsStatsQuery()
+  const {data:auditLogs, isLoading: logsLoading, isError: logsError} = useGetAuditLogsQuery({ action: actionFilter, actor: actorFilter })
+  const [triggerExport, { isLoading: exporting }] = useLazyGetAuditLogsExportsQuery()
+  const logs = auditLogs?.data?.results || [];
 
-  const filtered = LOG_DATA.filter((row) =>
-    (actionFilter === "all" || row.action === actionFilter) &&
-    (actorFilter  === "all" || row.actor  === actorFilter)
-  );
+  const filtered = actionFilter !== "all" || actorFilter !== "all"
+    ? logs
+    : logs;
+
+  const statsData = [
+  { title: "Events today",    value: auditlogsStats?.data?.events_today,  change: "across all actors",     trend: "neutral", strokeColor: "#2563eb", data: generateSparklineData("up") },
+  { title: "Content actions", value: auditlogsStats?.data?.content_actions,  change: "removes + restores",    trend: "neutral", strokeColor: "#16a34a", data: generateSparklineData("up") },
+  { title: "System events",   value: auditlogsStats?.data?.system_events,  change: "scrapes + dispatches",  trend: "neutral", strokeColor: "#d97706", data: generateSparklineData("up") },
+  { title: "Config changes",  value: auditlogsStats?.data?.config_changes,  change: "last 7 days",           trend: "neutral", strokeColor: "#6b7280", data: generateSparklineData("up") },
+];
+
+  const formatTime = (iso) => {
+    const d = new Date(iso);
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+    const isYesterday = d.toDateString() === yesterday.toDateString();
+    const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    if (isToday) return `Today ${time}`;
+    if (isYesterday) return `Yesterday ${time}`;
+    return d.toLocaleDateString([], { month: "short", day: "numeric" }) + ` ${time}`;
+  };
+
+  const getInitials = (actor) => {
+    const parts = actor.split(/[\s._-]+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return actor.slice(0, 2).toUpperCase();
+  };
+
+  const isSystemActor = (actor) => actor.toLowerCase() === "system";
+
+  const actionBadgeClass = (action) => {
+    const key = action.toUpperCase();
+    const map = {
+      REMOVE:   "bg-red-100   text-red-600   border-red-200",
+      SCRAPE:   "bg-blue-100  text-blue-700  border-blue-200",
+      RESTORE:  "bg-green-100 text-green-700 border-green-200",
+      SETTINGS: "bg-sky-100   text-sky-700   border-sky-200",
+      ALERT:    "bg-amber-100 text-amber-700 border-amber-200",
+      REGEN:    "bg-teal-100  text-teal-700  border-teal-200",
+      MEMBER:   "bg-indigo-100 text-indigo-700 border-indigo-200",
+      SOURCE:   "bg-orange-100 text-orange-700 border-orange-200",
+    };
+    return map[key] || "bg-gray-100 text-gray-600 border-gray-200";
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -123,8 +142,37 @@ const AuditLog = () => {
             </SelectContent>
           </Select>
 
-          <Button variant="outline" size="sm" className="text-[12px] gap-1.5 h-8">
-            <Download size={12} /> Export
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-[12px] gap-1.5 h-8"
+            disabled={exporting}
+            onClick={async () => {
+              try {
+                const result = await triggerExport(
+                  { action: actionFilter, actor: actorFilter },
+                  { forceRefetch: true }
+                );
+                const csvText = result?.data;
+                if (!csvText) {
+                  console.error("Export failed: empty response", result);
+                  return;
+                }
+                const blob = new Blob([csvText], { type: "text/csv;charset=utf-8;" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `audit-logs-${new Date().toISOString().slice(0,10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              } catch (err) {
+                console.error("Export failed", err);
+              }
+            }}
+          >
+            <Download size={12} /> {exporting ? "Exporting..." : "Export"}
           </Button>
         </CardContent>
 
@@ -141,47 +189,73 @@ const AuditLog = () => {
             </TableHeader>
 
             <TableBody>
-              {filtered.map((row, i) => (
-                <TableRow key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-
-                  {/* Time */}
-                  <TableCell className="py-3 px-4 text-[12px] text-gray-400 whitespace-nowrap align-top pt-3.5">
-                    {row.time}
+              {logsLoading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="py-10 text-center text-gray-400">
+                    <Loader2 className="h-5 w-5 animate-spin inline-block mr-2" />
+                    Loading audit logs...
                   </TableCell>
-
-                  {/* Actor */}
-                  <TableCell className="py-3 px-4 align-top pt-3.5">
-                    <div className="flex items-center gap-2.5">
-                      {row.isSystem ? (
-                        <div className="w-7 h-7 rounded-md bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-                          </svg>
-                        </div>
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-[#0f2d5c] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                          {row.init}
-                        </div>
-                      )}
-                      <span className="text-[13px] text-gray-700 font-medium">{row.actor}</span>
-                    </div>
-                  </TableCell>
-
-                  {/* Action badge */}
-                  <TableCell className="py-3 px-4 align-top pt-3.5">
-                    <span className={`inline-block text-[11px] font-bold border rounded px-2 py-0.5 tracking-wide ${actionStyles[row.action] || "bg-gray-100 text-gray-600 border-gray-200"}`}>
-                      {row.action}
-                    </span>
-                  </TableCell>
-
-                  {/* Target / Detail */}
-                  <TableCell className="py-3 px-4 align-top pt-3.5">
-                    <p className="text-[13px] font-medium text-gray-800 leading-tight mb-0.5">{row.title}</p>
-                    <p className="text-[12px] text-gray-400 leading-snug">{row.detail}</p>
-                  </TableCell>
-
                 </TableRow>
-              ))}
+              ) : logsError ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="py-10 text-center text-red-500">
+                    Failed to load audit logs.
+                  </TableCell>
+                </TableRow>
+              ) : filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="py-10 text-center text-gray-400">
+                    No audit logs found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filtered.map((row) => {
+                  const sys = isSystemActor(row.actor);
+                  const initials = getInitials(row.actor);
+                  const actionUpper = row.action.toUpperCase();
+                  return (
+                    <TableRow key={row.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+
+                      {/* Time */}
+                      <TableCell className="py-3 px-4 text-[12px] text-gray-400 whitespace-nowrap align-top pt-3.5">
+                        {formatTime(row.created_at)}
+                      </TableCell>
+
+                      {/* Actor */}
+                      <TableCell className="py-3 px-4 align-top pt-3.5">
+                        <div className="flex items-center gap-2.5">
+                          {sys ? (
+                            <div className="w-7 h-7 rounded-md bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                              </svg>
+                            </div>
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-[#0f2d5c] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                              {initials}
+                            </div>
+                          )}
+                          <span className="text-[13px] text-gray-700 font-medium">{row.actor}</span>
+                        </div>
+                      </TableCell>
+
+                      {/* Action badge */}
+                      <TableCell className="py-3 px-4 align-top pt-3.5">
+                        <span className={`inline-block text-[11px] font-bold border rounded px-2 py-0.5 tracking-wide ${actionBadgeClass(row.action)}`}>
+                          {actionUpper}
+                        </span>
+                      </TableCell>
+
+                      {/* Target / Detail */}
+                      <TableCell className="py-3 px-4 align-top pt-3.5">
+                        <p className="text-[13px] font-medium text-gray-800 leading-tight mb-0.5">{row.target}</p>
+                        <p className="text-[12px] text-gray-400 leading-snug">{row.detail}</p>
+                      </TableCell>
+
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </div>
@@ -191,7 +265,7 @@ const AuditLog = () => {
           <Info size={12} className="flex-shrink-0 mt-0.5" />
           <span>
             Audit log is immutable and append-only (AD-04). Retention: 12 months (NF-19). Articles
-            archived after 90 days; audit records kept for a full year. Showing last {LOG_DATA.length} events ({filtered.length} visible after filter).
+            archived after 90 days; audit records kept for a full year. Showing {auditLogs?.data?.count || 0} events ({filtered.length} visible after filter).
           </span>
         </div>
 

@@ -1,28 +1,19 @@
-import { ARTICLES } from "../../../mockdata/Digestdata";
 import { FeaturedCard, ArticleCard, DigestSidebar } from "../../../components/Digestcomponents";
 import { FilterChips } from "../Categoryfilter"; 
 import { useDigestFilter } from "../Digestfiltercontext";
+import Loader from "../../../components/Loader";
 
-const All = ({ search, onArticleClick }) => {
+const All = ({ onArticleClick, articles = [], isLoading }) => {
   const { activeFilters, setActiveFilters } = useDigestFilter();
-
-  const filtered = ARTICLES.filter((a) => {
-    const matchSearch =
-      !search ||
-      a.title.toLowerCase().includes(search.toLowerCase()) ||
-      a.source.toLowerCase().includes(search.toLowerCase());
-
-    const matchFilter =
-      !activeFilters.length ||
-      a.cats.some((cat) => activeFilters.includes(cat.toUpperCase()));
-
-    return matchSearch && matchFilter;
-  });
 
   const removeFilter = (key) =>
     setActiveFilters((prev) => prev.filter((f) => f !== key));
 
-  const [featured, ...rest] = filtered;
+  const [featured, ...rest] = articles;
+
+  if (isLoading) {
+    return <Loader fullScreen={false} size={40} />;
+  }
 
   return (
     <div className="flex flex-col lg:flex-row gap-6">
@@ -35,7 +26,7 @@ const All = ({ search, onArticleClick }) => {
           onClear={() => setActiveFilters([])}
         />
 
-        {filtered.length === 0 ? (
+        {articles.length === 0 ? (
           <div className="flex items-center justify-center h-40 text-gray-400 text-[13px]">
             No articles match the selected filters.
           </div>

@@ -1,4 +1,29 @@
 import ArticleList from "./ArticleList";
-import { MockData } from "../../../mockdata/moderationmockData";
-const All = () => <div className="p-6"><ArticleList data={MockData} /></div>;
+
+const All = ({
+  data,
+  isLoading,
+  error,
+  uniqueCategories,
+  sourcenames,
+  selectedSource,
+  setSelectedSource,
+  selectedProduct,
+  setSelectedProduct,
+}) => (
+  <div className="p-6">
+    <ArticleList
+      data={data}
+      isLoading={isLoading}
+      error={error}
+      uniqueCategories={uniqueCategories}
+      sourcenames={sourcenames}
+      selectedSource={selectedSource}
+      setSelectedSource={setSelectedSource}
+      selectedProduct={selectedProduct}
+      setSelectedProduct={setSelectedProduct}
+    />
+  </div>
+);
+
 export default All;

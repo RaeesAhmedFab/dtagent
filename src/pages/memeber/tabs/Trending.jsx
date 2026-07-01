@@ -1,28 +1,17 @@
-import { ARTICLES } from "../../../mockdata/Digestdata";
 import { ArticleCard, DigestSidebar } from "../../../components/Digestcomponents";
 import { FilterChips } from "../Categoryfilter"; 
 import { useDigestFilter } from "../Digestfiltercontext"; 
+import Loader from "../../../components/Loader";
 
-const Trending = ({ search, onArticleClick }) => {
+const Trending = ({ onArticleClick, articles = [], isLoading }) => {
   const { activeFilters, setActiveFilters } = useDigestFilter();
-
-  const filtered = ARTICLES.filter((a) => {
-    const matchTrending = a.trending;
-
-    const matchSearch =
-      !search ||
-      a.title.toLowerCase().includes(search.toLowerCase()) ||
-      a.source.toLowerCase().includes(search.toLowerCase());
-
-    const matchFilter =
-      !activeFilters.length ||
-      a.cats.some((cat) => activeFilters.includes(cat.toUpperCase()));
-
-    return matchTrending && matchSearch && matchFilter;
-  });
 
   const removeFilter = (key) =>
     setActiveFilters((prev) => prev.filter((f) => f !== key));
+
+  if (isLoading) {
+    return <Loader fullScreen={false} size={40} />;
+  }
 
   return (
     <div className="flex flex-col lg:flex-row gap-6">
@@ -35,13 +24,13 @@ const Trending = ({ search, onArticleClick }) => {
           onClear={() => setActiveFilters([])}
         />
 
-        {filtered.length === 0 ? (
+        {articles.length === 0 ? (
           <div className="flex items-center justify-center h-40 text-gray-400 text-[13px]">
             No articles match the selected filters.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filtered.map((a) => (
+            {articles.map((a) => (
               <ArticleCard key={a.id} article={a} onClick={onArticleClick} />
             ))}
           </div>

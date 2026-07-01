@@ -1,17 +1,62 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Eye, RefreshCw, Trash2, Check, Filter, Sparkles } from "lucide-react";
+import {
+  Eye,
+  RefreshCw,
+  Trash2,
+  Check,
+  Filter,
+  Sparkles,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { useUpdateModerationStatusMutation } from "../../../redux/Api/adminModerationApi";
 
-const categoryStyles = {
-  REGULATIONS: "text-violet-700 border-violet-300",
-  CLINICAL: "text-pink-700 border-pink-300",
-  TECHNOLOGY: "text-blue-700 border-blue-300",
-  HYGIENE: "text-teal-700 border-teal-300",
-  BUSINESS: "text-gray-700 border-gray-300",
-  PRODUCTS: "text-amber-700 border-amber-300",
-};
+const CategoryBadge = ({ cat }) => (
+  <span
+    key={cat}
+    className="text-[11px] font-semibold border rounded px-2 py-0.5 w-fit"
+    style={getCategoryStyle(cat)}
+  >
+    {cat}
+  </span>
+);
+
+function getCategoryStyle(cat) {
+  const lower = cat.toLowerCase();
+  const map = {
+    business: { color: "#6b7280" },
+    regulation: { color: "#7c3aed" },
+    clinical: { color: "#db2777" },
+    technology: { color: "#2563eb" },
+    hygiene: { color: "#0d9488" },
+    products: { color: "#d97706" },
+    mainstream: { color: "#059669" },
+  };
+  const entry = map[lower];
+  if (!entry) return {};
+  return {
+    color: entry.color,
+    borderColor: `${entry.color}40`,
+    backgroundColor: `${entry.color}14`,
+  };
+}
 
 const StatusBadge = ({ status }) =>
   status === "live" ? (
@@ -24,154 +69,293 @@ const StatusBadge = ({ status }) =>
     </span>
   );
 
-const ArticleList = ({ data }) => (
-  <Card className="w-full">
-    <CardContent className="flex justify-between items-center pt-5 pb-4 px-5 flex-wrap gap-3">
-      <p className="text-[15px] font-semibold text-gray-800">Articles ingested in the past 48 hours</p>
-      <div className="flex items-center flex-wrap gap-2">
-        <Select defaultValue="all-sources">
-          <SelectTrigger className="w-[140px] h-9 text-[13px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all-sources">All sources</SelectItem>
-            <SelectItem value="inside-dentistry">
-              Inside Dentistry
-            </SelectItem>
+function getTimeAgo(dateStr) {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHrs = Math.floor(diffMins / 60);
+  if (diffHrs < 24) return `${diffHrs}h ago`;
+  const diffDays = Math.floor(diffHrs / 24);
+  return `${diffDays}d ago`;
+}
 
-            <SelectItem value="inside-dental-hygiene">
-              Inside Dental Hygiene
-            </SelectItem>
-            <SelectItem value="conexiant-dental">
-              Conexiant Dental
-            </SelectItem>
+function getSourceName(item) {
+  try {
+    const hostname = new URL(item.original_article_url).hostname.replace(
+      "www.",
+      ""
+    );
+    return hostname;
+  } catch {
+    return item.original_article_url;
+  }
+}
 
-            <SelectItem value="ada-news">
-              ADA News
-            </SelectItem>
+function formatReads(n) {
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+  return String(n);
+}
 
-            <SelectItem value="the-dental-advisor">
-              The Dental Advisor
-            </SelectItem>
+const RemoveModal = ({ open, onOpenChange, onConfirm, isRemoving }) => {
+  const [reason, setReason] = useState("");
 
-            <SelectItem value="dimensions-of-dental-hyg">
-              Dimensions of Dental Hyg.
-            </SelectItem>
+  const handleConfirm = () => {
+    if (!reason.trim()) return;
+    onConfirm(reason.trim());
+  };
 
-            <SelectItem value="decisions-in-dentistry">
-              Decisions in Dentistry
-            </SelectItem>
-
-            <SelectItem value="dentistryiq">
-              DentistryIQ
-            </SelectItem>
-
-            <SelectItem value="dental-tribune-us">
-              Dental Tribune US
-            </SelectItem>
-
-            <SelectItem value="dental-products-hopper">
-              Dental Products Hopper
-            </SelectItem>
-
-            <SelectItem value="drbicuspid">
-              DrBicuspid.com
-            </SelectItem>
-          </SelectContent>
-        </Select>
-        <Select defaultValue="products">
-          <SelectTrigger className="w-[140px] h-9 text-[13px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all-categories">
-              All categories
-            </SelectItem>
-
-            <SelectItem value="technology">
-              Technology
-            </SelectItem>
-
-            <SelectItem value="hygiene">
-              Hygiene
-            </SelectItem>
-
-            <SelectItem value="products">
-              Products
-            </SelectItem>
-
-            <SelectItem value="regulations">
-              Regulations
-            </SelectItem>
-
-            <SelectItem value="clinical">
-              Clinical
-            </SelectItem>
-
-            <SelectItem value="business">
-              Business
-            </SelectItem>
-
-            <SelectItem value="mainstream">
-              Mainstream
-            </SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="outline" className="h-9 text-[13px] gap-1.5">
-          <Filter size={13} /> More filters
-        </Button>
-      </div>
-    </CardContent>
-
-    <Separator />
-
-    <CardContent className="p-0">
-      {data.map((item, index) => (
-        <div key={index}>
-          <div className="flex flex-col md:grid gap-5 px-5 py-5" style={{ gridTemplateColumns: "140px 1fr auto" }}>
-            <div>
-              <p className="text-[13px] font-semibold text-gray-800 mb-0.5">{item.source}</p>
-              <p className="text-[12px] text-gray-400 mb-2.5">{item.time}</p>
-              <div className="flex flex-row md:flex-col gap-1.5 flex-wrap">
-                {item.cats.map((cat) => (
-                  <span key={cat} className={`text-[11px] font-semibold border rounded px-2 py-0.5 w-fit ${categoryStyles[cat]}`}>
-                    {cat}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-[14px] font-semibold text-gray-900 mb-1.5 leading-snug">{item.title}</p>
-              <p className="text-[13px] text-gray-500 mb-2.5 leading-relaxed">{item.desc}</p>
-              <div className="flex items-center gap-2 text-[12px] text-gray-400 flex-wrap">
-                <span className="inline-flex items-center gap-1"><Sparkles size={12} /> AI summary · GPT-4</span>
-                <span>·</span><span>{item.reads} reads</span><span>·</span>
-                <StatusBadge status={item.status} />
-              </div>
-            </div>
-            <div className="flex flex-row md:flex-col items-start gap-1.5 pt-0.5 mt-3 md:mt-0">
-              <button className="inline-flex items-center gap-1.5 text-[12px] text-gray-500 border border-gray-200 rounded-md px-2.5 py-1.5 hover:bg-gray-50 whitespace-nowrap">
-                <Eye size={13} /> Preview
-              </button>
-              <button className="inline-flex items-center gap-1.5 text-[12px] text-gray-500 border border-gray-200 rounded-md px-2.5 py-1.5 hover:bg-gray-50 whitespace-nowrap">
-                <RefreshCw size={13} /> Regenerate
-              </button>
-              {item.status === "removed" ? (
-                <button className="inline-flex items-center gap-1.5 text-[12px] text-gray-400 border border-gray-200 rounded-md px-2.5 py-1.5 whitespace-nowrap">
-                  <Check size={13} /> Restore
-                </button>
-              ) : (
-                <button className="inline-flex items-center gap-1.5 text-[12px] text-red-600 border border-red-200 rounded-md px-2.5 py-1.5 bg-red-50 hover:bg-red-100 whitespace-nowrap">
-                  <Trash2 size={13} /> Remove
-                </button>
-              )}
-            </div>
-          </div>
-          {index < data.length - 1 && <Separator />}
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Remove Article</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          <label className="text-sm font-medium text-gray-700 mb-2 block">
+            Removal Reason <span className="text-red-500">*</span>
+          </label>
+          <Textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Enter the reason for removing this article..."
+            className="min-h-[100px] text-sm"
+          />
+          {!reason.trim() && reason !== undefined && (
+            <p className="text-xs text-red-500 mt-1">
+              Please provide a reason before confirming.
+            </p>
+          )}
         </div>
-      ))}
-    </CardContent>
-  </Card>
-);
+        <DialogFooter className="gap-2">
+          <DialogClose asChild>
+            <Button variant="outline" disabled={isRemoving}>
+              Cancel
+            </Button>
+          </DialogClose>
+          <Button
+            onClick={handleConfirm}
+            disabled={!reason.trim() || isRemoving}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            {isRemoving ? "Removing..." : "Confirm Remove"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const ArticleList = ({
+  data,
+  isLoading,
+  error,
+  uniqueCategories,
+  sourcenames,
+  selectedSource,
+  setSelectedSource,
+  selectedProduct,
+  setSelectedProduct,
+}) => {
+  const [removeModalOpen, setRemoveModalOpen] = useState(false);
+  const [removingItem, setRemovingItem] = useState(null);
+  const [removeError, setRemoveError] = useState("");
+
+  const [updateModerationStatus, { isLoading: isRemoving }] =
+    useUpdateModerationStatusMutation();
+
+  const handleRemoveClick = (item) => {
+    setRemovingItem(item);
+    setRemoveError("");
+    setRemoveModalOpen(true);
+  };
+
+  const handleConfirmRemove = async (reason) => {
+    if (!removingItem) return;
+    try {
+      await updateModerationStatus({
+        id: removingItem.id,
+        payload: {
+          status: "removed",
+          remove_reason: reason,
+        },
+      }).unwrap();
+      setRemoveModalOpen(false);
+      setRemovingItem(null);
+      setRemoveError("");
+    } catch (err) {
+      setRemoveError(
+        err?.data?.message ||
+          "Failed to remove article. Please try again."
+      );
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card className="w-full">
+        <CardContent className="p-8 flex items-center justify-center">
+          <p className="text-sm text-gray-400">Loading moderation queue...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="w-full">
+        <CardContent className="p-8 flex items-center justify-center">
+          <p className="text-sm text-red-500">
+            Failed to load moderation queue. Please try again.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      <Card className="w-full">
+        <CardContent className="flex justify-between items-center pt-5 pb-4 px-5 flex-wrap gap-3">
+          <p className="text-[15px] font-semibold text-gray-800">
+            Articles ingested in the past 48 hours
+          </p>
+          <div className="flex items-center flex-wrap gap-2">
+            <Select value={selectedSource} onValueChange={setSelectedSource}>
+              <SelectTrigger className="w-[160px] h-9 text-[13px]">
+                <SelectValue placeholder="All sources" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All sources</SelectItem>
+                {sourcenames.map((src) => (
+                  <SelectItem key={src.source_name} value={src.source_name}>
+                    {src.source_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+              <SelectTrigger className="w-[150px] h-9 text-[13px]">
+                <SelectValue placeholder="All categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {uniqueCategories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button variant="outline" className="h-9 text-[13px] gap-1.5">
+              <Filter size={13} /> More filters
+            </Button>
+          </div>
+        </CardContent>
+
+        <Separator />
+
+        <CardContent className="p-0">
+          {data.length === 0 ? (
+            <div className="py-10 text-center text-sm text-gray-400">
+              No articles match the selected filters.
+            </div>
+          ) : (
+            data.map((item, index) => {
+              const source = getSourceName(item);
+              const time = getTimeAgo(item.created_at);
+              const cats = (item.ai_article_categories || []).map((c) =>
+                c.charAt(0).toUpperCase() + c.slice(1)
+              );
+              const title = item.ai_title || item.original_article_url;
+              const desc = item.ai_description || "";
+              const reads = formatReads(item.read_count || 0);
+
+              return (
+                <div key={item.id || index}>
+                  <div
+                    className="flex flex-col md:grid gap-5 px-5 py-5"
+                    style={{ gridTemplateColumns: "140px 1fr auto" }}
+                  >
+                    <div>
+                      <p className="text-[13px] font-semibold text-gray-800 mb-0.5">
+                        {source}
+                      </p>
+                      <p className="text-[12px] text-gray-400 mb-2.5">{time}</p>
+                      <div className="flex flex-row md:flex-col gap-1.5 flex-wrap">
+                        {cats.map((cat) => (
+                          <CategoryBadge key={cat} cat={cat} />
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[14px] font-semibold text-gray-900 mb-1.5 leading-snug">
+                        {title}
+                      </p>
+                      <p className="text-[13px] text-gray-500 mb-2.5 leading-relaxed">
+                        {desc}
+                      </p>
+                      <div className="flex items-center gap-2 text-[12px] text-gray-400 flex-wrap">
+                        <span className="inline-flex items-center gap-1">
+                          <Sparkles size={12} /> AI summary ·{" "}
+                          {item.ai_summary_model?.replace("gpt-", "GPT-") ||
+                            "GPT-4"}
+                        </span>
+                        <span>·</span>
+                        <span>{reads} reads</span>
+                        <span>·</span>
+                        <StatusBadge status={item.status} />
+                      </div>
+                      {item.status === "removed" && item.remove_reason && (
+                        <p className="text-[12px] text-gray-400 mt-2 italic">
+                          Reason: {item.remove_reason}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-row md:flex-col items-start gap-1.5 pt-0.5 mt-3 md:mt-0">
+                      <button className="inline-flex items-center gap-1.5 text-[12px] text-gray-500 border border-gray-200 rounded-md px-2.5 py-1.5 hover:bg-gray-50 whitespace-nowrap">
+                        <Eye size={13} /> Preview
+                      </button>
+                      <button className="inline-flex items-center gap-1.5 text-[12px] text-gray-500 border border-gray-200 rounded-md px-2.5 py-1.5 hover:bg-gray-50 whitespace-nowrap">
+                        <RefreshCw size={13} /> Regenerate
+                      </button>
+                      {item.status === "removed" ? (
+                        <button className="inline-flex items-center gap-1.5 text-[12px] text-gray-400 border border-gray-200 rounded-md px-2.5 py-1.5 whitespace-nowrap">
+                          <Check size={13} /> Restore
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleRemoveClick(item)}
+                          className="inline-flex items-center gap-1.5 text-[12px] text-red-600 border border-red-200 rounded-md px-2.5 py-1.5 bg-red-50 hover:bg-red-100 whitespace-nowrap"
+                        >
+                          <Trash2 size={13} /> Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {index < data.length - 1 && <Separator />}
+                </div>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
+
+      <RemoveModal
+        open={removeModalOpen}
+        onOpenChange={setRemoveModalOpen}
+        onConfirm={handleConfirmRemove}
+        isRemoving={isRemoving}
+      />
+      {removeError && (
+        <p className="text-sm text-red-500 mt-2 text-center">{removeError}</p>
+      )}
+    </>
+  );
+};
 
 export default ArticleList;

@@ -32,9 +32,25 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
+const textBaseQuery = fetchBaseQuery({
+  baseUrl,
+  prepareHeaders: (headers, { getState }) => {
+    const token = getState()?.auth?.token;
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
+    return headers;
+  },
+  responseHandler: (response) => response.text(),
+});
+
 // Custom base query with error handling
 const customBaseQuery = async (args, api, extraOptions) => {
-  const result = await baseQuery(args, api, extraOptions);
+  const isTextResponse = typeof args === "object" && args?.url?.includes("/export/");
+
+  const result = isTextResponse
+    ? await textBaseQuery(args, api, extraOptions)
+    : await baseQuery(args, api, extraOptions);
 
   // Handle 401 - Unauthorized (logout user)
   if (result?.error?.status === 401) {
@@ -96,7 +112,7 @@ export const apiSlice = createApi({
   refetchOnFocus: false, // Don't refetch on window focus
   refetchOnReconnect: true, // Refetch when internet reconnects
 
-  tagTypes: ["User", "Scan", "Property", "UserProfile", "Affiliates"],
+  tagTypes: ["User", "Scan", "Property", "UserProfile", "Affiliates", "ModerationQueue"],
 
   endpoints: () => ({}),
 });

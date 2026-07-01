@@ -22,9 +22,9 @@ const AISummarizationCard = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="gpt-4-turbo">GPT-4 Turbo (SRS default)</SelectItem>
+              <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
+              <SelectItem value="gpt-4.1">GPT-4.1</SelectItem>
               <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-              <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground mt-2">

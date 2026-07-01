@@ -1,6 +1,6 @@
 import { BookOpen, Sparkles, ExternalLink } from "lucide-react";
 import { TRENDING_CATS, TOP_SOURCES, CAT_STYLES } from "../mockdata/Digestdata";
-import { Card,  } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 // ─── Category badge ───────────────────────────────────────────────
 export const CatBadge = ({ cat }) => (
   <span className={`text-[11px] font-semibold border rounded px-2 py-0.5 ${CAT_STYLES[cat] || "text-gray-600 border-gray-200 bg-gray-50"}`}>
@@ -16,7 +16,7 @@ export const SourceBadge = ({ sourceKey }) => (
 );
 
 // ─── Article action row ───────────────────────────────────────────
-export const ArticleActions = ({ source }) => (
+export const ArticleActions = ({ source, originalUrl }) => (
   <div className="flex flex-wrap items-center gap-3 md:gap-4 text-[12px] text-gray-400">
     <button className="inline-flex items-center gap-1.5 hover:text-gray-600 transition-colors">
       <BookOpen size={12} /> Read summary
@@ -24,9 +24,14 @@ export const ArticleActions = ({ source }) => (
     <button className="inline-flex items-center gap-1.5 hover:text-gray-600 transition-colors">
       <Sparkles size={12} /> Ask agent about this
     </button>
-    <span className="ml-auto inline-flex items-center gap-1 text-[#0f2d5c] font-medium hover:underline cursor-pointer">
+    <a
+      href={originalUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="ml-auto inline-flex items-center gap-1 text-[#0f2d5c] font-medium hover:underline cursor-pointer"
+    >
       Read original <ExternalLink size={11} />
-    </span>
+    </a>
   </div>
 );
 
@@ -45,7 +50,7 @@ export const ArticleCard = ({ article, onClick }) => (
     </div>
     <h3 className="text-[14px] md:text-[15px] font-semibold text-gray-900 mb-2 leading-snug">{article.title}</h3>
     <p className="text-[13px] text-gray-500 leading-relaxed line-clamp-3 mb-3">{article.desc}</p>
-    <ArticleActions source={article.source} />
+    <ArticleActions source={article.source} originalUrl={article.original_article_url} />
   </div>
 );
 
@@ -65,7 +70,7 @@ export const FeaturedCard = ({ article, onClick }) => (
     </div>
     <h2 className="text-[18px] md:text-[20px] font-bold text-gray-900 mb-2.5 leading-snug">{article.title}</h2>
     <p className="text-[13px] text-gray-500 leading-relaxed mb-4">{article.desc}</p>
-    <ArticleActions source={article.source} />
+    <ArticleActions source={article.source} originalUrl={article.original_article_url} />
   </div>
 );
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useGetJokeOfTheDayQuery } from "../redux/Api/jokeApi";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import {
   Sidebar,
@@ -44,7 +45,10 @@ import {
 import Logo from "@/assets/dtagent.png";
 import { AskAgentDrawer } from "../models/AskAgentDrawer";
 // ── NEW: import context ──────────────────────────────────────────
-import { DigestFilterProvider, useDigestFilter } from "../pages/memeber/Digestfiltercontext";
+import {
+  DigestFilterProvider,
+  useDigestFilter,
+} from "../pages/memeber/Digestfiltercontext";
 
 // ─── Nav Configs ──────────────────────────────────────────────────────────────
 
@@ -73,8 +77,18 @@ const admindashbaordNav = [
   {
     label: "Insights",
     items: [
-      { key: "analytics", label: "Analytics", badge: null, icon: <ChartLine /> },
-      { key: "alertsystem", label: "Alert system", badge: null, icon: <Mail /> },
+      {
+        key: "analytics",
+        label: "Analytics",
+        badge: null,
+        icon: <ChartLine />,
+      },
+      {
+        key: "alertsystem",
+        label: "Alert system",
+        badge: null,
+        icon: <Mail />,
+      },
     ],
   },
   {
@@ -148,23 +162,36 @@ const ROLE_CONFIG = {
 
 // ── NEW: Category data for inline sidebar filter ──────────────────
 const SIDEBAR_CATEGORIES = [
-  { key: "TECHNOLOGY",  label: "Technology",  count: 2, dot: "bg-blue-600"   },
-  { key: "HYGIENE",     label: "Hygiene",      count: 2, dot: null            },
-  { key: "PRODUCTS",    label: "Products",     count: 1, dot: "bg-orange-500" },
-  { key: "REGULATIONS", label: "Regulations",  count: 4, dot: null            },
-  { key: "CLINICAL",    label: "Clinical",     count: 5, dot: "bg-red-500"    },
-  { key: "BUSINESS",    label: "Business",     count: 4, dot: null            },
-  { key: "MAINSTREAM",  label: "Mainstream",   count: 0, dot: "bg-gray-600"   },
+  { key: "TECHNOLOGY", label: "Technology", dot: "bg-blue-600" },
+  { key: "HYGIENE", label: "Hygiene", dot: null },
+  { key: "PRODUCTS", label: "Products", dot: "bg-orange-500" },
+  { key: "REGULATIONS", label: "Regulations", dot: null },
+  { key: "CLINICAL", label: "Clinical", dot: "bg-red-500" },
+  { key: "BUSINESS", label: "Business", dot: null },
+  { key: "MAINSTREAM", label: "Mainstream", dot: "bg-gray-600" },
 ];
 
 // ── NEW: Inline category filter rendered inside the sidebar ───────
 const SidebarCategoryFilter = () => {
   const { activeFilters, setActiveFilters } = useDigestFilter();
   const [jokeRevealed, setJokeRevealed] = useState(false);
+  const {
+    data: jokeData,
+    isLoading: jokeLoading,
+    refetch,
+  } = useGetJokeOfTheDayQuery();
+
+  const joke = jokeData?.data?.joke || "";
+  const answer = jokeData?.data?.answer || "";
+
+  const handleNextJoke = () => {
+    setJokeRevealed(false);
+    refetch();
+  };
 
   const toggle = (key) => {
     setActiveFilters((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
   };
 
@@ -175,27 +202,38 @@ const SidebarCategoryFilter = () => {
         <p className="text-[10px] font-bold tracking-widest text-cyan-600 uppercase mb-1.5 flex items-center gap-1">
           😄 Joke of the day
         </p>
-        <p className="text-[12px] text-gray-700 leading-snug mb-2.5">
-          What do you call a dentist who doesn't like tea?
-        </p>
-        {jokeRevealed && (
-          <p className="text-[11px] text-cyan-700 font-semibold mb-2 italic">
-            Denis!
-          </p>
+        {jokeLoading ? (
+          <p className="text-[12px] text-gray-400 animate-pulse">Loading...</p>
+        ) : joke ? (
+          <>
+            <p className="text-[12px] text-gray-700 leading-snug mb-2.5">
+              {joke}
+            </p>
+            {jokeRevealed && (
+              <p className="text-[11px] text-cyan-700 font-semibold mb-2 italic">
+                {answer}
+              </p>
+            )}
+            <div className="flex gap-1.5 flex-wrap">
+              {!jokeRevealed && (
+                <button
+                  onClick={() => setJokeRevealed(true)}
+                  className="text-[11px] px-2.5 py-1 border border-cyan-300 text-cyan-700 hover:bg-cyan-100 bg-white rounded-md transition-colors"
+                >
+                  Reveal
+                </button>
+              )}
+              <button
+                onClick={handleNextJoke}
+                className="text-[11px] px-2.5 py-1 border border-cyan-300 text-cyan-700 hover:bg-cyan-100 bg-white rounded-md flex items-center gap-1 transition-colors"
+              >
+                <Sparkles size={9} /> Next Joke
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className="text-[12px] text-gray-400">No joke today.</p>
         )}
-        <div className="flex gap-1.5 flex-wrap">
-          {!jokeRevealed && (
-            <button
-              onClick={() => setJokeRevealed(true)}
-              className="text-[11px] px-2.5 py-1 border border-cyan-300 text-cyan-700 hover:bg-cyan-100 bg-white rounded-md transition-colors"
-            >
-              Reveal
-            </button>
-          )}
-          <button className="text-[11px] px-2.5 py-1 border border-cyan-300 text-cyan-700 hover:bg-cyan-100 bg-white rounded-md flex items-center gap-1 transition-colors">
-            <Sparkles size={9} /> Ask agent
-          </button>
-        </div>
       </div>
 
       {/* Category rows */}
@@ -207,24 +245,33 @@ const SidebarCategoryFilter = () => {
               key={cat.key}
               onClick={() => toggle(cat.key)}
               className={`flex items-center gap-2.5 px-[18px] py-[8px] w-full text-left transition-all border-l-[3px]
-                ${isActive
-                  ? "border-l-[#0f2d5c] bg-blue-50/80"
-                  : "border-l-transparent hover:bg-accent"
+                ${
+                  isActive
+                    ? "border-l-[#0f2d5c] bg-blue-50/80"
+                    : "border-l-transparent hover:bg-accent"
                 }`}
             >
-              {cat.dot
-                ? <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cat.dot}`} />
-                : <span className="w-2 h-2 flex-shrink-0" />
-              }
-              <span className={`flex-1 text-[13px] font-medium
-                ${isActive ? "text-[#0f2d5c] font-semibold" : "text-foreground"}`}>
+              {cat.dot ? (
+                <span
+                  className={`w-2 h-2 rounded-full flex-shrink-0 ${cat.dot}`}
+                />
+              ) : (
+                <span className="w-2 h-2 flex-shrink-0" />
+              )}
+              <span
+                className={`flex-1 text-[13px] font-medium
+                ${isActive ? "text-[#0f2d5c] font-semibold" : "text-foreground"}`}
+              >
                 {cat.label}
               </span>
-              <span className={`text-[11px] min-w-[20px] text-center rounded-full
-                ${isActive
-                  ? "bg-[#0f2d5c] text-white px-1.5 py-0.5 text-[10px] font-bold"
-                  : "text-muted-foreground"
-                }`}>
+              <span
+                className={`text-[11px] min-w-[20px] text-center rounded-full
+                ${
+                  isActive
+                    ? "bg-[#0f2d5c] text-white px-1.5 py-0.5 text-[10px] font-bold"
+                    : "text-muted-foreground"
+                }`}
+              >
                 {cat.count}
               </span>
             </button>
@@ -238,34 +285,39 @@ const SidebarCategoryFilter = () => {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function SidebarLayout({ role = "admin" }) {
-
-  const [openMenus,    setOpenMenus]    = useState({});
-  const [mobileOpen,   setMobileOpen]   = useState(false);
+  const [openMenus, setOpenMenus] = useState({});
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [AskAgentOpen, setAskAgentOpen] = useState(false);
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const config = ROLE_CONFIG[role] ?? ROLE_CONFIG.admin;
   const { nav, prefix, avatarColor, name, subtitle } = config;
 
-  const activePage = location.pathname.split('/').pop() || '';
+  const activePage = location.pathname.split("/").pop() || "";
 
   const hideAskAgentButton =
     location.pathname === "/member/askagent" ||
     location.pathname.startsWith("/admin");
 
-  const activeSection = nav.find(section =>
-    section.items.some(item =>
-      item.key === activePage || item.children?.some(child => child.key === activePage)
-    )
+  const activeSection = nav.find((section) =>
+    section.items.some(
+      (item) =>
+        item.key === activePage ||
+        item.children?.some((child) => child.key === activePage),
+    ),
   );
 
-  const activeItem = activeSection?.items.find(item =>
-    item.key === activePage || item.children?.some(child => child.key === activePage)
+  const activeItem = activeSection?.items.find(
+    (item) =>
+      item.key === activePage ||
+      item.children?.some((child) => child.key === activePage),
   );
 
-  const activeChild    = activeItem?.children?.find(child => child.key === activePage);
-  const pageTitle      = activeChild?.label || activeItem?.label || '';
+  const activeChild = activeItem?.children?.find(
+    (child) => child.key === activePage,
+  );
+  const pageTitle = activeChild?.label || activeItem?.label || "";
 
   const toggleMenu = (key) =>
     setOpenMenus((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -280,9 +332,7 @@ export default function SidebarLayout({ role = "admin" }) {
           <img src={Logo} alt="Logo" className="w-10 h-10" />
           <div>
             <h1 className="font-semibold">DTAgent</h1>
-            <p className="text-[11px] text-muted-foreground">
-              {config.title}
-            </p>
+            <p className="text-[11px] text-muted-foreground">{config.title}</p>
           </div>
         </div>
         <div className="text-[11px] text-muted-foreground mt-0.5">
@@ -303,99 +353,117 @@ export default function SidebarLayout({ role = "admin" }) {
                 <SidebarCategoryFilter />
               ) : (
                 <SidebarMenu>
-                  {items.map(({ key, label: itemLabel, icon, badge, children: subItems }) => {
+                  {items.map(
+                    ({
+                      key,
+                      label: itemLabel,
+                      icon,
+                      badge,
+                      children: subItems,
+                    }) => {
+                      // ── Item with nested children ──
+                      if (subItems?.length) {
+                        const childActive = isChildActive(subItems);
+                        const isOpen = openMenus[key] ?? childActive;
 
-                    // ── Item with nested children ──
-                    if (subItems?.length) {
-                      const childActive = isChildActive(subItems);
-                      const isOpen = openMenus[key] ?? childActive;
-
-                      return (
-                        <Collapsible
-                          key={key}
-                          open={isOpen}
-                          onOpenChange={() => toggleMenu(key)}
-                        >
-                          <SidebarMenuItem>
-                            <CollapsibleTrigger asChild>
-                              <SidebarMenuButton
-                                className={`rounded-none border-l-[3px] px-[18px] py-[9px] h-auto text-[13px] font-medium gap-2.5 ${
-                                  childActive
-                                    ? "border-l-[#163d72] bg-[#163d72] text-[#163d72] font-semibold"
-                                    : "border-l-transparent"
-                                }`}
-                              >
-                                {icon}
-                                <span className="flex-1">{itemLabel}</span>
-                                {badge && (
-                                  <SidebarMenuBadge className="bg-[#163d72] text-white text-[11px] font-bold rounded-[10px] px-[7px]">
-                                    {badge}
-                                  </SidebarMenuBadge>
-                                )}
-                                <ChevronRight
-                                  className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${
-                                    isOpen ? "rotate-90" : ""
+                        return (
+                          <Collapsible
+                            key={key}
+                            open={isOpen}
+                            onOpenChange={() => toggleMenu(key)}
+                          >
+                            <SidebarMenuItem>
+                              <CollapsibleTrigger asChild>
+                                <SidebarMenuButton
+                                  className={`rounded-none border-l-[3px] px-[18px] py-[9px] h-auto text-[13px] font-medium gap-2.5 ${
+                                    childActive
+                                      ? "border-l-[#163d72] bg-[#163d72] text-[#163d72] font-semibold"
+                                      : "border-l-transparent"
                                   }`}
-                                />
-                              </SidebarMenuButton>
-                            </CollapsibleTrigger>
+                                >
+                                  {icon}
+                                  <span className="flex-1">{itemLabel}</span>
+                                  {badge && (
+                                    <SidebarMenuBadge className="bg-[#163d72] text-white text-[11px] font-bold rounded-[10px] px-[7px]">
+                                      {badge}
+                                    </SidebarMenuBadge>
+                                  )}
+                                  <ChevronRight
+                                    className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${
+                                      isOpen ? "rotate-90" : ""
+                                    }`}
+                                  />
+                                </SidebarMenuButton>
+                              </CollapsibleTrigger>
 
-                            <CollapsibleContent>
-                              <SidebarMenuSub className="ml-0 pl-0 border-l-0">
-                                {subItems.map(({ key: childKey, label: childLabel, icon: childIcon, badge: childBadge }) => (
-                                  <SidebarMenuSubItem key={childKey}>
-                                    <SidebarMenuSubButton
-                                      isActive={activePage === childKey}
-                                      onClick={() => navigate(`${prefix}/${childKey}`)}
-                                      className={`rounded-none border-l-[3px] pl-[36px] pr-[18px] py-[8px] h-auto text-[12.5px] font-medium gap-2 ${
-                                        activePage === childKey
-                                          ? "border-l-[#163d72] bg-[#163d72] text-[#163d72] cursor-pointer font-semibold"
-                                          : "border-l-transparent"
-                                      }`}
-                                    >
-                                      {childIcon}
-                                      <span className="flex-1">{childLabel}</span>
-                                      {childBadge && (
-                                        <SidebarMenuBadge className="bg-[#163d72] text-white text-[11px] font-bold rounded-[10px] px-[7px]">
-                                          {childBadge}
-                                        </SidebarMenuBadge>
-                                      )}
-                                    </SidebarMenuSubButton>
-                                  </SidebarMenuSubItem>
-                                ))}
-                              </SidebarMenuSub>
-                            </CollapsibleContent>
-                          </SidebarMenuItem>
-                        </Collapsible>
+                              <CollapsibleContent>
+                                <SidebarMenuSub className="ml-0 pl-0 border-l-0">
+                                  {subItems.map(
+                                    ({
+                                      key: childKey,
+                                      label: childLabel,
+                                      icon: childIcon,
+                                      badge: childBadge,
+                                    }) => (
+                                      <SidebarMenuSubItem key={childKey}>
+                                        <SidebarMenuSubButton
+                                          isActive={activePage === childKey}
+                                          onClick={() =>
+                                            navigate(`${prefix}/${childKey}`)
+                                          }
+                                          className={`rounded-none border-l-[3px] pl-[36px] pr-[18px] py-[8px] h-auto text-[12.5px] font-medium gap-2 ${
+                                            activePage === childKey
+                                              ? "border-l-[#163d72] bg-[#163d72] text-[#163d72] cursor-pointer font-semibold"
+                                              : "border-l-transparent"
+                                          }`}
+                                        >
+                                          {childIcon}
+                                          <span className="flex-1">
+                                            {childLabel}
+                                          </span>
+                                          {childBadge && (
+                                            <SidebarMenuBadge className="bg-[#163d72] text-white text-[11px] font-bold rounded-[10px] px-[7px]">
+                                              {childBadge}
+                                            </SidebarMenuBadge>
+                                          )}
+                                        </SidebarMenuSubButton>
+                                      </SidebarMenuSubItem>
+                                    ),
+                                  )}
+                                </SidebarMenuSub>
+                              </CollapsibleContent>
+                            </SidebarMenuItem>
+                          </Collapsible>
+                        );
+                      }
+
+                      // ── Regular item ──
+                      return (
+                        <SidebarMenuItem key={key}>
+                          <SidebarMenuButton
+                            isActive={activePage === key}
+                            onClick={() => {
+                              navigate(`${prefix}/${key}`);
+                              setMobileOpen(false);
+                            }}
+                            className={`rounded-none border-l-[4px] px-[18px] py-[9px] h-auto text-[13px] font-medium gap-2.5 ${
+                              activePage === key
+                                ? "border-l-[#163d72] bg-[#163d72] text-[#163d72] font-semibold cursor-pointer"
+                                : "border-l-transparent cursor-pointer"
+                            }`}
+                          >
+                            {icon}
+                            <span>{itemLabel}</span>
+                            {badge && (
+                              <SidebarMenuBadge className="bg-[#163d72] text-white text-[11px] font-bold rounded-[10px] px-[7px]">
+                                {badge}
+                              </SidebarMenuBadge>
+                            )}
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
                       );
-                    }
-
-                    // ── Regular item ──
-                    return (
-                      <SidebarMenuItem key={key}>
-                        <SidebarMenuButton
-                          isActive={activePage === key}
-                          onClick={() => {
-                            navigate(`${prefix}/${key}`);
-                            setMobileOpen(false);
-                          }}
-                          className={`rounded-none border-l-[4px] px-[18px] py-[9px] h-auto text-[13px] font-medium gap-2.5 ${
-                            activePage === key
-                              ? "border-l-[#163d72] bg-[#163d72] text-[#163d72] font-semibold cursor-pointer"
-                              : "border-l-transparent cursor-pointer"
-                          }`}
-                        >
-                          {icon}
-                          <span>{itemLabel}</span>
-                          {badge && (
-                            <SidebarMenuBadge className="bg-[#163d72] text-white text-[11px] font-bold rounded-[10px] px-[7px]">
-                              {badge}
-                            </SidebarMenuBadge>
-                          )}
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
+                    },
+                  )}
                 </SidebarMenu>
               )}
             </SidebarGroupContent>
@@ -415,7 +483,9 @@ export default function SidebarLayout({ role = "admin" }) {
             </AvatarFallback>
           </Avatar>
           <div>
-            <div className="text-[12.5px] font-semibold text-foreground">{name}</div>
+            <div className="text-[12.5px] font-semibold text-foreground">
+              {name}
+            </div>
             <div className="text-[11px] text-muted-foreground">{subtitle}</div>
           </div>
         </div>
@@ -429,7 +499,10 @@ export default function SidebarLayout({ role = "admin" }) {
       <SidebarProvider>
         <div className="flex h-screen w-full overflow-hidden">
           {/* Desktop Sidebar */}
-          <Sidebar collapsible="none" className="hidden lg:flex border-r border-border w-[220px] flex-shrink-0">
+          <Sidebar
+            collapsible="none"
+            className="hidden lg:flex border-r border-border w-[220px] flex-shrink-0"
+          >
             <SidebarNav />
           </Sidebar>
 
@@ -473,15 +546,21 @@ export default function SidebarLayout({ role = "admin" }) {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="text-[13px] font-semibold text-foreground">{name}</div>
-                    <div className="text-[11px] text-muted-foreground">{subtitle}</div>
+                    <div className="text-[13px] font-semibold text-foreground">
+                      {name}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {subtitle}
+                    </div>
                   </div>
                 </div>
 
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => { navigate("/login", { replace: true }); }}
+                  onClick={() => {
+                    navigate("/login", { replace: true });
+                  }}
                   title="Sign out"
                   className="w-9 h-9 rounded-[9px] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#e63946]"
                 >
