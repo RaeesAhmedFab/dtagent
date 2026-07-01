@@ -1,6 +1,7 @@
 import { BookOpen, Sparkles, ExternalLink } from "lucide-react";
 import { TRENDING_CATS, TOP_SOURCES, CAT_STYLES } from "../mockdata/Digestdata";
 import { Card } from "@/components/ui/card";
+import { useDigestFilter } from "../pages/memeber/Digestfiltercontext";
 // ─── Category badge ───────────────────────────────────────────────
 export const CatBadge = ({ cat }) => (
   <span className={`text-[11px] font-semibold border rounded px-2 py-0.5 ${CAT_STYLES[cat] || "text-gray-600 border-gray-200 bg-gray-50"}`}>
@@ -75,38 +76,52 @@ export const FeaturedCard = ({ article, onClick }) => (
 );
 
 // ─── Sidebar ──────────────────────────────────────────────────────
-export const DigestSidebar = () => (
-  <div className="w-full lg:w-[220px] flex-shrink-0 flex flex-col gap-6">
-    {/* Trending categories */}
-    <div>
-      <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-3">
-        Trending Categories
-      </p>
-      <Card className="flex flex-col gap-2 p-3">
-        {TRENDING_CATS.map(c => (
-          <div key={c.name} className="flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors rounded px-2 py-1 ">
-            <span className={`text-[11px] font-semibold border rounded px-2 py-0.5 ${c.style}`}>
-              {c.name}
-            </span>
-            <span className="text-[12px] text-gray-400 font-medium">{c.count}</span>
-          </div>
-        ))}
-      </Card>
-    </div>
+export const DigestSidebar = () => {
+  const { activeFilters, setActiveFilters } = useDigestFilter();
 
-    {/* Top sources */}
-    <div>
-      <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-3">
-        Top Sources Today
-      </p>
-      <Card className="flex flex-col gap-2 p-3">
-        {TOP_SOURCES.map(s => (
-          <div key={s.name} className="flex items-center justify-between">
-            <span className="text-[13px] text-gray-700">{s.name}</span>
-            <span className="text-[12px] text-gray-400 font-medium">{s.count}</span>
-          </div>
-        ))}
-      </Card>
+  const handleCategoryClick = (name) => {
+    setActiveFilters((prev) =>
+      prev.includes(name) ? prev.filter((f) => f !== name) : [name]
+    );
+  };
+
+  return (
+    <div className="w-full lg:w-[220px] flex-shrink-0 flex flex-col gap-6">
+      {/* Trending categories */}
+      <div>
+        <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-3">
+          Trending Categories
+        </p>
+        <Card className="flex flex-col gap-2 p-3">
+          {TRENDING_CATS.map(c => (
+            <div
+              key={c.name}
+              onClick={() => handleCategoryClick(c.name)}
+              className={`flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors rounded px-2 py-1 ${activeFilters.includes(c.name) ? "bg-gray-100" : ""}`}
+            >
+              <span className={`text-[11px] font-semibold border rounded px-2 py-0.5 ${c.style}`}>
+                {c.name}
+              </span>
+              <span className="text-[12px] text-gray-400 font-medium">{c.count}</span>
+            </div>
+          ))}
+        </Card>
+      </div>
+
+      {/* Top sources */}
+      <div>
+        <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-3">
+          Top Sources Today
+        </p>
+        <Card className="flex flex-col gap-2 p-3">
+          {TOP_SOURCES.map(s => (
+            <div key={s.name} className="flex items-center justify-between">
+              <span className="text-[13px] text-gray-700">{s.name}</span>
+              <span className="text-[12px] text-gray-400 font-medium">{s.count}</span>
+            </div>
+          ))}
+        </Card>
+      </div>
     </div>
-  </div>
-);
+  );
+};
