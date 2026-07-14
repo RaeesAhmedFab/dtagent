@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useDispatch } from "react-redux";
 import { useGetJokeOfTheDayQuery } from "../redux/Api/jokeApi";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import {
@@ -44,6 +45,8 @@ import {
 } from "@/components/ui/collapsible";
 import Logo from "@/assets/dtagent.png";
 import { AskAgentDrawer } from "../models/AskAgentDrawer";
+import { useGetTopSourcesTodayQuery } from "../redux/Api/adminModerationApi";
+import { logout } from "../redux/apiSlice/authSlice";
 // ── NEW: import context ──────────────────────────────────────────
 import {
   DigestFilterProvider,
@@ -174,6 +177,8 @@ const SIDEBAR_CATEGORIES = [
 // ── NEW: Inline category filter rendered inside the sidebar ───────
 const SidebarCategoryFilter = () => {
   const { activeFilters, setActiveFilters } = useDigestFilter();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [jokeRevealed, setJokeRevealed] = useState(false);
   const {
     data: jokeData,
@@ -189,10 +194,17 @@ const SidebarCategoryFilter = () => {
     refetch();
   };
 
-  const toggle = (key) => {
-    setActiveFilters((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
-    );
+  const handleCategoryClick = (key) => {
+    setActiveFilters((prev) => {
+      if (prev.includes(key)) {
+        return [];
+      }
+      return [key];
+    });
+
+    if (!location.pathname.startsWith("/member/dailydigest")) {
+      navigate("/member/dailydigest");
+    }
   };
 
   return (
@@ -243,7 +255,7 @@ const SidebarCategoryFilter = () => {
           return (
             <button
               key={cat.key}
-              onClick={() => toggle(cat.key)}
+              onClick={() => handleCategoryClick(cat.key)}
               className={`flex items-center gap-2.5 px-[18px] py-[8px] w-full text-left transition-all border-l-[3px]
                 ${
                   isActive
@@ -290,6 +302,8 @@ export default function SidebarLayout({ role = "admin" }) {
   const [AskAgentOpen, setAskAgentOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
+
 
   const config = ROLE_CONFIG[role] ?? ROLE_CONFIG.admin;
   const { nav, prefix, avatarColor, name, subtitle } = config;
@@ -559,6 +573,8 @@ export default function SidebarLayout({ role = "admin" }) {
                   variant="outline"
                   size="icon"
                   onClick={() => {
+                    dispatch(logout());
+                    localStorage.removeItem("auth_data");
                     navigate("/login", { replace: true });
                   }}
                   title="Sign out"

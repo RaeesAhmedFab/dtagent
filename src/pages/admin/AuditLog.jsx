@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Info, Loader2 } from "lucide-react";
+import { Download, Info, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useGetAuditLogsQuery, useGetAuditLogsStatsQuery, useLazyGetAuditLogsExportsQuery } from "../../redux/Api/auditLogsApi";
+import Loader from "../../components/Loader";
 // ─── Sparkline data ───────────────────────────────────────────────
 const generateSparklineData = (trend = "up", points = 10) => {
   let value = 50;
@@ -32,26 +33,17 @@ const generateSparklineData = (trend = "up", points = 10) => {
 const ALL_ACTIONS = ["restore", "settings", "regenerate", "remove", "alert", "scrape", "member", "source"];
 const ALL_ACTORS  = ["system", "Admin", "Jane Smith", "John Doe"];
 
-// ─── Action badge styles ──────────────────────────────────────────
-const actionStyles = {
-  REMOVE:   "bg-red-100   text-red-600   border-red-200",
-  SCRAPE:   "bg-blue-100  text-blue-700  border-blue-200",
-  RESTORE:  "bg-green-100 text-green-700 border-green-200",
-  SETTINGS: "bg-sky-100   text-sky-700   border-sky-200",
-  ALERT:    "bg-amber-100 text-amber-700 border-amber-200",
-  REGEN:    "bg-teal-100  text-teal-700  border-teal-200",
-  MEMBER:   "bg-indigo-100 text-indigo-700 border-indigo-200",
-  SOURCE:   "bg-orange-100 text-orange-700 border-orange-200",
-};
-
 // ─── Component ────────────────────────────────────────────────────
 const AuditLog = () => {
   const [actionFilter, setActionFilter] = useState("all");
   const [actorFilter,  setActorFilter]  = useState("all");
+  const [page, setPage] = useState(1);
   const {data:auditlogsStats} = useGetAuditLogsStatsQuery()
-  const {data:auditLogs, isLoading: logsLoading, isError: logsError} = useGetAuditLogsQuery({ action: actionFilter, actor: actorFilter })
+  const {data:auditLogs, isLoading: logsLoading, isError: logsError} = useGetAuditLogsQuery({ action: actionFilter, actor: actorFilter, page, page_size: 20 })
   const [triggerExport, { isLoading: exporting }] = useLazyGetAuditLogsExportsQuery()
   const logs = auditLogs?.data?.results || [];
+  const totalCount = auditLogs?.data?.count || 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / 20));
 
   const filtered = actionFilter !== "all" || actorFilter !== "all"
     ? logs
@@ -99,6 +91,19 @@ const AuditLog = () => {
     return map[key] || "bg-gray-100 text-gray-600 border-gray-200";
   };
 
+  const getPageNumbers = () => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (page <= 4) {
+      return [1, 2, 3, 4, 5, "...", totalPages];
+    }
+    if (page >= totalPages - 3) {
+      return [1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+    return [1, "...", page - 1, page, page + 1, "...", totalPages];
+  };
+
   return (
     <div className="flex flex-col gap-4">
 
@@ -117,7 +122,7 @@ const AuditLog = () => {
           <p className="text-[15px] font-semibold text-gray-900 flex-1">Activity log</p>
 
           {/* Action filter */}
-          <Select value={actionFilter} onValueChange={setActionFilter}>
+          <Select value={actionFilter} onValueChange={(v) => { setActionFilter(v); setPage(1); }}>
             <SelectTrigger className="w-[140px] h-8 text-[13px] border-gray-200">
               <SelectValue placeholder="All actions" />
             </SelectTrigger>
@@ -130,7 +135,7 @@ const AuditLog = () => {
           </Select>
 
           {/* Actor filter */}
-          <Select value={actorFilter} onValueChange={setActorFilter}>
+          <Select value={actorFilter} onValueChange={(v) => { setActorFilter(v); setPage(1); }}>
             <SelectTrigger className="w-[140px] h-8 text-[13px] border-gray-200">
               <SelectValue placeholder="All actors" />
             </SelectTrigger>
@@ -192,8 +197,7 @@ const AuditLog = () => {
               {logsLoading ? (
                 <TableRow>
                   <TableCell colSpan={4} className="py-10 text-center text-gray-400">
-                    <Loader2 className="h-5 w-5 animate-spin inline-block mr-2" />
-                    Loading audit logs...
+                    <Loader fullScreen={false} size={40} />
                   </TableCell>
                 </TableRow>
               ) : logsError ? (
@@ -259,6 +263,46 @@ const AuditLog = () => {
             </TableBody>
           </Table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-4 pb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage(page - 1)}
+              className="cursor-pointer"
+            >
+              <ChevronLeft size={14} />
+            </Button>
+            {getPageNumbers().map((p, idx) =>
+              p === "..." ? (
+                <span key={`ellipsis-${idx}`} className="px-1 text-gray-400 select-none">...</span>
+              ) : (
+                <Button
+                  key={p}
+                  variant={p === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPage(p)}
+                  className={`min-w-[32px] cursor-pointer ${
+                    p === page ? "bg-[#0f2d5c] text-white" : ""
+                  }`}
+                >
+                  {p}
+                </Button>
+              )
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => setPage(page + 1)}
+              className="cursor-pointer"
+            >
+              <ChevronRight size={14} />
+            </Button>
+          </div>
+        )}
 
         {/* Footer note */}
         <div className="flex items-start gap-1.5 px-5 py-3 text-[11px] text-gray-400 border-t border-gray-50">

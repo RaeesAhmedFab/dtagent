@@ -14,19 +14,22 @@ import {
   RefreshCw,
   Trash2,
   Check,
-  Filter,
   Sparkles,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { useUpdateModerationStatusMutation } from "../../../redux/Api/adminModerationApi";
+import { useUpdateModerationStatusMutation, useReprocessArticleMutation } from "../../../redux/Api/adminModerationApi";
+import Loader from "../../../components/Loader";
 
 const CategoryBadge = ({ cat }) => (
   <span
@@ -148,6 +151,33 @@ const RemoveModal = ({ open, onOpenChange, onConfirm, isRemoving }) => {
   );
 };
 
+const RestoreModal = ({ open, onOpenChange, onConfirm, isRestoring }) => (
+  <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Restore Article</DialogTitle>
+        <DialogDescription>
+          Are you sure you want to restore this article? It will be set back to "Live" status and reappear in the active queue.
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter className="gap-2 pt-4">
+        <DialogClose asChild>
+          <Button variant="outline" disabled={isRestoring}>
+            Cancel
+          </Button>
+        </DialogClose>
+        <Button
+          onClick={onConfirm}
+          disabled={isRestoring}
+          className="bg-primary  text-white cursor-pointer"
+        >
+          {isRestoring ? "Restoring..." : "Yes, Restore"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+);
+
 const ArticleList = ({
   data,
   isLoading,
@@ -158,18 +188,49 @@ const ArticleList = ({
   setSelectedSource,
   selectedProduct,
   setSelectedProduct,
+  page,
+  setPage,
+  totalPages,
 }) => {
   const [removeModalOpen, setRemoveModalOpen] = useState(false);
+  const [restoreModalOpen, setRestoreModalOpen] = useState(false);
   const [removingItem, setRemovingItem] = useState(null);
+  const [restoringItem, setRestoringItem] = useState(null);
+  const [regeneratingItem, setRegeneratingItem] = useState(null);
   const [removeError, setRemoveError] = useState("");
+  const [restoreError, setRestoreError] = useState("");
+  const [regenerateError, setRegenerateError] = useState("");
 
   const [updateModerationStatus, { isLoading: isRemoving }] =
     useUpdateModerationStatusMutation();
+  const [reprocessArticle, { isLoading: isRegenerating }] =
+    useReprocessArticleMutation();
 
   const handleRemoveClick = (item) => {
     setRemovingItem(item);
     setRemoveError("");
     setRemoveModalOpen(true);
+  };
+
+  const handleRestoreClick = (item) => {
+    setRestoringItem(item);
+    setRestoreError("");
+    setRestoreModalOpen(true);
+  };
+
+  const handleRegenerateClick = async (item) => {
+    setRegeneratingItem(item);
+    setRegenerateError("");
+    try {
+      await reprocessArticle(item.article_id).unwrap();
+    } catch (err) {
+      setRegenerateError(
+        err?.data?.message ||
+          "Failed to regenerate article. Please try again."
+      );
+    } finally {
+      setRegeneratingItem(null);
+    }
   };
 
   const handleConfirmRemove = async (reason) => {
@@ -193,13 +254,44 @@ const ArticleList = ({
     }
   };
 
+  const handleConfirmRestore = async () => {
+    if (!restoringItem) return;
+    try {
+      await updateModerationStatus({
+        id: restoringItem.id,
+        payload: {
+          status: "live",
+        },
+      }).unwrap();
+      setRestoreModalOpen(false);
+      setRestoringItem(null);
+      setRestoreError("");
+    } catch (err) {
+      setRestoreError(
+        err?.data?.message ||
+          "Failed to restore article. Please try again."
+      );
+    }
+  };
+
+  const getPageNumbers = () => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (page <= 4) {
+      return [1, 2, 3, 4, 5, "...", totalPages];
+    }
+    if (page >= totalPages - 3) {
+      return [1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+    return [1, "...", page - 1, page, page + 1, "...", totalPages];
+  };
+
   if (isLoading) {
     return (
-      <Card className="w-full">
-        <CardContent className="p-8 flex items-center justify-center">
-          <p className="text-sm text-gray-400">Loading moderation queue...</p>
-        </CardContent>
-      </Card>
+      <>
+      <Loader fullScreen={false} size={40} />
+      </>
     );
   }
 
@@ -251,9 +343,9 @@ const ArticleList = ({
               </SelectContent>
             </Select>
 
-            <Button variant="outline" className="h-9 text-[13px] gap-1.5">
+            {/* <Button variant="outline" className="h-9 text-[13px] gap-1.5">
               <Filter size={13} /> More filters
-            </Button>
+            </Button> */}
           </div>
         </CardContent>
 
@@ -320,17 +412,30 @@ const ArticleList = ({
                       <button className="inline-flex items-center gap-1.5 text-[12px] text-gray-500 border border-gray-200 rounded-md px-2.5 py-1.5 hover:bg-gray-50 whitespace-nowrap">
                         <Eye size={13} /> Preview
                       </button>
-                      <button className="inline-flex items-center gap-1.5 text-[12px] text-gray-500 border border-gray-200 rounded-md px-2.5 py-1.5 hover:bg-gray-50 whitespace-nowrap">
-                        <RefreshCw size={13} /> Regenerate
+                      <button
+                        onClick={() => handleRegenerateClick(item)}
+                        disabled={isRegenerating && regeneratingItem?.id === item.id}
+                        className="inline-flex items-center gap-1.5 text-[12px]  bg-primary/10 text-gray-500 border border-gray-200 rounded-md px-2.5 py-1.5 hover:bg-primary/50 hover:text-white whitespace-nowrap cursor-pointer disabled:opacity-50"
+                      >
+                        {isRegenerating && regeneratingItem?.id === item.id ? (
+                          <><RefreshCw size={13} className=" animate-spin" />Regenerating...</>
+                        ) : (
+                          <>
+                            <RefreshCw size={13} /> Regenerate
+                          </>
+                        )}
                       </button>
                       {item.status === "removed" ? (
-                        <button className="inline-flex items-center gap-1.5 text-[12px] text-gray-400 border border-gray-200 rounded-md px-2.5 py-1.5 whitespace-nowrap">
+                        <button
+                          onClick={() => handleRestoreClick(item)}
+                          className="inline-flex items-center gap-1.5 text-[12px] bg-primary text-white border border-gray-200 rounded-md px-2.5 py-1.5 whitespace-nowrap cursor-pointer"
+                        >
                           <Check size={13} /> Restore
                         </button>
                       ) : (
                         <button
                           onClick={() => handleRemoveClick(item)}
-                          className="inline-flex items-center gap-1.5 text-[12px] text-red-600 border border-red-200 rounded-md px-2.5 py-1.5 bg-red-50 hover:bg-red-100 whitespace-nowrap"
+                          className="inline-flex items-center gap-1.5 text-[12px] text-red-600 border border-red-200 rounded-md px-2.5 py-1.5 bg-red-50 hover:bg-red-100 whitespace-nowrap cursor-pointer"
                         >
                           <Trash2 size={13} /> Remove
                         </button>
@@ -345,14 +450,68 @@ const ArticleList = ({
         </CardContent>
       </Card>
 
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => setPage(page - 1)}
+            className="cursor-pointer"
+          >
+            <ChevronLeft size={14} />
+          </Button>
+          {getPageNumbers().map((p, idx) =>
+            p === "..." ? (
+              <span key={`ellipsis-${idx}`} className="px-1 text-gray-400 select-none">...</span>
+            ) : (
+              <Button
+                key={p}
+                variant={p === page ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPage(p)}
+                className={`min-w-[32px] cursor-pointer ${
+                  p === page ? "bg-[#0f2d5c] text-white" : ""
+                }`}
+              >
+                {p}
+              </Button>
+            )
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages}
+            onClick={() => setPage(page + 1)}
+            className="cursor-pointer"
+          >
+            <ChevronRight size={14} />
+          </Button>
+        </div>
+      )}
+
       <RemoveModal
         open={removeModalOpen}
         onOpenChange={setRemoveModalOpen}
         onConfirm={handleConfirmRemove}
         isRemoving={isRemoving}
       />
+
+      <RestoreModal
+        open={restoreModalOpen}
+        onOpenChange={setRestoreModalOpen}
+        onConfirm={handleConfirmRestore}
+        isRestoring={isRemoving}
+      />
+
       {removeError && (
         <p className="text-sm text-red-500 mt-2 text-center">{removeError}</p>
+      )}
+      {restoreError && (
+        <p className="text-sm text-red-500 mt-2 text-center">{restoreError}</p>
+      )}
+      {regenerateError && (
+        <p className="text-sm text-red-500 mt-2 text-center">{regenerateError}</p>
       )}
     </>
   );

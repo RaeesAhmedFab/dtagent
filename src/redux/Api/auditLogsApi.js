@@ -3,10 +3,12 @@ import { apiSlice } from "../apiSlice/apiSlice";
 const auditLogsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getAuditLogs: builder.query({
-      query: ({ action, actor } = {}) => {
+      query: ({ action, actor, page, page_size } = {}) => {
         const params = new URLSearchParams();
         if (action && action !== "all") params.append("action", action);
         if (actor && actor !== "all") params.append("actor", actor);
+        if (page) params.set("page", page);
+        if (page_size) params.set("page_size", page_size);
         const qs = params.toString();
         return {
           url: `/audit-logs/${qs ? `?${qs}` : ""}`,

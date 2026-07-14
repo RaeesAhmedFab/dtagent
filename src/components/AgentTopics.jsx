@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
-const MockData = [
+const fallbackData = [
   { id: "01", topic: "Infection control / OSHA", category: "REGULATIONS", count: 412 },
   { id: "02", topic: "AI / digital scanning",    category: "TECHNOLOGY",  count: 308 },
   { id: "03", topic: "Implant survival data",    category: "CLINICAL",    count: 244 },
@@ -19,7 +19,9 @@ const categoryStyles = {
   HYGIENE:     "text-teal-700  border-teal-300   bg-teal-50",
 };
 
-const AgentTopics = () => {
+const AgentTopics = ({ data: propData }) => {
+  const items = Array.isArray(propData) ? propData : fallbackData;
+
   return (
     <Card>
       <CardContent className="pt-5 pb-2 px-5">
@@ -27,23 +29,23 @@ const AgentTopics = () => {
           Most-queried agent topics
         </p>
 
-        {MockData.map((item, index) => (
-          <div key={item.id}>
+        {items.map((item, index) => (
+          <div key={item.id || index}>
             <div className="flex items-center gap-3 py-2.5">
               <span className="text-[12px] text-gray-400 font-medium min-w-[20px]">
-                {item.id}
+                {String(item.id || index + 1).padStart(2, "0")}
               </span>
               <span className="flex-1 text-[13px] text-gray-800">
                 {item.topic}
               </span>
-              <span className={`text-[11px] font-semibold border rounded-md px-2.5 py-0.5 ${categoryStyles[item.category]}`}>
+              <span className={`text-[11px] font-semibold border rounded-md px-2.5 py-0.5 ${categoryStyles[item.category] || "text-gray-700 border-gray-300 bg-gray-50"}`}>
                 {item.category}
               </span>
               <span className="text-[13px] text-gray-500 min-w-[32px] text-right">
                 {item.count}
               </span>
             </div>
-            {index < MockData.length - 1 && <Separator />}
+            {index < items.length - 1 && <Separator />}
           </div>
         ))}
       </CardContent>

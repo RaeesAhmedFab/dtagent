@@ -36,9 +36,9 @@ const EmailTemplatePreview = () => {
       {/* Top bar */}
       <div className="flex items-center justify-between mb-6">
         <span className="text-lg font-blod text-gray-800">Email template preview</span>
-        <Button variant="outline" size="sm" className="cursor-pointer">
+        {/* <Button variant="outline" size="sm" className="cursor-pointer">
           <Settings size={14} /> Edit template
-        </Button>
+        </Button> */}
       </div>
 
       {/* Email card */}

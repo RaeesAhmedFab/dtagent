@@ -112,7 +112,7 @@ export const apiSlice = createApi({
   refetchOnFocus: false, // Don't refetch on window focus
   refetchOnReconnect: true, // Refetch when internet reconnects
 
-  tagTypes: ["User", "Scan", "Property", "UserProfile", "Affiliates", "ModerationQueue"],
+  tagTypes: ["User", "Scan", "Property", "UserProfile", "Affiliates", "ModerationQueue", "NotificationPreferences", "SystemAlerts", "Analytics"],
 
   endpoints: () => ({}),
 });

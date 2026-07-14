@@ -29,6 +29,39 @@ const adminApi = apiSlice.injectEndpoints({
         body: { oldPassword, password },
       }),
     }),
+    loginwithmembership: builder.query({
+      query: () => ({
+        url: `/auth/ym/authorize/`,
+        method: "GET",
+      }),
+    }),
+    ymCallback: builder.query({
+      query: (code) => ({
+        url: `/auth/ym/call-back/?code=${code}`,
+        method: "GET",
+      }),
+    }),
+    getMe:builder.query({
+      query: ()=>({
+        url:"/auth/me",
+        method:"GET"
+      })
+    }),
+    getNotificationPreferences: builder.query({
+      query: () => ({
+        url: "/notifications/me/",
+        method: "GET",
+      }),
+      providesTags: ["NotificationPreferences"],
+    }),
+    updateNotificationPreferences: builder.mutation({
+      query: (body) => ({
+        url: "/notifications/me/",
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["NotificationPreferences"],
+    }),
   }),
 });
 export const {
@@ -36,4 +69,10 @@ export const {
   useForgotPasswordMutation,
   useResetPasswordMutation,
   useUpdatePasswordMutation,
+  useLoginwithmembershipQuery,
+  useLazyLoginwithmembershipQuery,
+  useLazyYmCallbackQuery,
+  useGetMeQuery,
+  useGetNotificationPreferencesQuery,
+  useUpdateNotificationPreferencesMutation,
 } = adminApi;

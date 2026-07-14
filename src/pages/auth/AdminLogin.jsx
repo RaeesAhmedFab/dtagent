@@ -21,9 +21,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AdminLoginSchema } from "@/schema/AuthSchema";
 import Logo from "@/assets/dtagent.png";
+import MemberPic from "@/assets/yourmember.jpeg";
 import { toast } from "sonner";
-import { usePostAdminLoginMutation } from "../../redux/Api/adminapi";
+import {
+  usePostAdminLoginMutation,
+  useLazyLoginwithmembershipQuery,
+} from "../../redux/Api/adminapi";
 import { setCredentials } from "../../redux/apiSlice/authSlice";
+import { persistor } from "../../redux/store/store";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -41,21 +46,69 @@ const AdminLogin = () => {
 
   const [postAdminLogin] = usePostAdminLoginMutation();
 
+  const [triggerMembership, { isFetching: isMemberLoading }] =
+    useLazyLoginwithmembershipQuery();
+
+  const handleMembershipLogin = async () => {
+    try {
+      const { data, error } = await triggerMembership();
+
+      if (error) {
+        throw error;
+      }
+
+      const redirectUrl = data?.data?.authorize_url;
+
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+      } else {
+        toast.error("No redirect URL received. Please try again.");
+      }
+    } catch (err) {
+      console.error("Membership login failed:", err);
+      toast.error(
+        err?.data?.message || "Membership login failed. Please try again."
+      );
+    }
+  };
+
   const onSubmit = async (data) => {
     try {
       const response = await postAdminLogin(data).unwrap();
 
-      // Save the logged-in user + tokens into the redux store.
+      const authPayload = response?.data || response;
+
+      localStorage.setItem(
+        "auth_data",
+        JSON.stringify({
+          user: authPayload.user,
+          tokens: authPayload.tokens || {
+            access: { token: authPayload.access },
+            refresh: { token: authPayload.refresh },
+          },
+        })
+      );
+
       dispatch(
         setCredentials({
-          user: response.user,
-          token: response.tokens.access.token,
-          refreshToken: response.tokens.refresh.token,
+          user: authPayload.user,
+          token: authPayload.tokens?.access?.token || authPayload.access,
+          refreshToken:
+            authPayload.tokens?.refresh?.token || authPayload.refresh,
         })
       );
 
       toast.success("Login successful!");
-      navigate("/admin/dashboard");
+
+      await persistor.flush();
+
+      const allowedRoles = ["dta_operations", "dta_content_lead", "admin"];
+      const userRole = authPayload.user?.role;
+      const destination = allowedRoles.includes(userRole)
+        ? "/admin/dashboard"
+        : "/member/dailydigest";
+
+      navigate(destination);
     } catch (error) {
       console.error("Login failed:", error);
       toast.error(
@@ -145,6 +198,23 @@ const AdminLogin = () => {
                 ""
               )}
               Login
+            </Button>
+            <Button
+              type="button"
+              onClick={handleMembershipLogin}
+              disabled={isMemberLoading}
+              className="w-full text-white  border border-gray-200 hover:bg-[#003165] cursor-pointer"
+            >
+              {isMemberLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <img
+                  src={MemberPic}
+                  alt="Member"
+                  className="h-4 w-4 inline-block"
+                />
+              )}
+              Login With
             </Button>
           </FieldGroup>
         </form>

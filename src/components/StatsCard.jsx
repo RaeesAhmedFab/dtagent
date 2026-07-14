@@ -2,7 +2,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, Tooltip } from "recharts";
 
-
 const TrendIcon = ({ trend }) => {
   if (trend === "up")
     return <TrendingUp className="h-3.5 w-3.5" />;
@@ -17,7 +16,7 @@ const trendColors = {
   neutral: "text-gray-500",
 };
 
-export default function StatsCards({ className, items = [], show = true, }) {
+export default function StatsCards({ className, items = [], show = true }) {
   return (
     <div className={className}>
       {items.map((stat, index) => (
@@ -45,7 +44,7 @@ export default function StatsCards({ className, items = [], show = true, }) {
             </div>
 
             {/* Sparkline */}
-            {show && (
+            {show && stat.data && (
               <div className="-mx-5 -mb-5 h-16">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={stat.data}>

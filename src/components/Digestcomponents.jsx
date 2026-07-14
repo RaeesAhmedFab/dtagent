@@ -2,6 +2,7 @@ import { BookOpen, Sparkles, ExternalLink } from "lucide-react";
 import { TRENDING_CATS, TOP_SOURCES, CAT_STYLES } from "../mockdata/Digestdata";
 import { Card } from "@/components/ui/card";
 import { useDigestFilter } from "../pages/memeber/Digestfiltercontext";
+import { useGetTopSourcesTodayQuery } from "../redux/Api/adminModerationApi";
 // ─── Category badge ───────────────────────────────────────────────
 export const CatBadge = ({ cat }) => (
   <span className={`text-[11px] font-semibold border rounded px-2 py-0.5 ${CAT_STYLES[cat] || "text-gray-600 border-gray-200 bg-gray-50"}`}>
@@ -78,7 +79,7 @@ export const FeaturedCard = ({ article, onClick }) => (
 // ─── Sidebar ──────────────────────────────────────────────────────
 export const DigestSidebar = () => {
   const { activeFilters, setActiveFilters } = useDigestFilter();
-
+    const {data: topSourcesData} = useGetTopSourcesTodayQuery();
   const handleCategoryClick = (name) => {
     setActiveFilters((prev) =>
       prev.includes(name) ? prev.filter((f) => f !== name) : [name]
@@ -102,7 +103,7 @@ export const DigestSidebar = () => {
               <span className={`text-[11px] font-semibold border rounded px-2 py-0.5 ${c.style}`}>
                 {c.name}
               </span>
-              <span className="text-[12px] text-gray-400 font-medium">{c.count}</span>
+    
             </div>
           ))}
         </Card>
@@ -114,9 +115,9 @@ export const DigestSidebar = () => {
           Top Sources Today
         </p>
         <Card className="flex flex-col gap-2 p-3">
-          {TOP_SOURCES.map(s => (
-            <div key={s.name} className="flex items-center justify-between">
-              <span className="text-[13px] text-gray-700">{s.name}</span>
+          {(topSourcesData?.data?.sources || []).map((s) => (
+            <div key={s.source_name} className="flex items-center justify-between">
+              <span className="text-[13px] text-gray-700">{s.source_name}</span>
               <span className="text-[12px] text-gray-400 font-medium">{s.count}</span>
             </div>
           ))}

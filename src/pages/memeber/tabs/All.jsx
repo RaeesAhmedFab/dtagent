@@ -2,8 +2,10 @@ import { FeaturedCard, ArticleCard, DigestSidebar } from "../../../components/Di
 import { FilterChips } from "../Categoryfilter"; 
 import { useDigestFilter } from "../Digestfiltercontext";
 import Loader from "../../../components/Loader";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const All = ({ onArticleClick, articles = [], isLoading }) => {
+const All = ({ onArticleClick, articles = [], isLoading, page = 1, totalPages = 1, onPageChange }) => {
   const { activeFilters, setActiveFilters } = useDigestFilter();
 
   const removeFilter = (key) =>
@@ -40,6 +42,43 @@ const All = ({ onArticleClick, articles = [], isLoading }) => {
                 <ArticleCard key={a.id} article={a} onClick={onArticleClick} />
               ))}
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-gray-100">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => onPageChange(page - 1)}
+                  className="cursor-pointer"
+                >
+                  <ChevronLeft size={14} />
+                </Button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <Button
+                    key={p}
+                    variant={p === page ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => onPageChange(p)}
+                    className={`min-w-[32px] cursor-pointer ${
+                      p === page ? "bg-[#0f2d5c] text-white" : ""
+                    }`}
+                  >
+                    {p}
+                  </Button>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => onPageChange(page + 1)}
+                  className="cursor-pointer"
+                >
+                  <ChevronRight size={14} />
+                </Button>
+              </div>
+            )}
           </>
         )}
       </div>

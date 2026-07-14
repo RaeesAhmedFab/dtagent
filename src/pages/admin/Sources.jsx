@@ -24,6 +24,7 @@ import {
   useRunAllSourcesMutation,
   useDeleteSourceMutation,
 } from "../../redux/Api/sourcesapi";
+import Loader from "../../components/Loader";
 
 // Helper to generate initials from a name
 const getInitials = (name) => {
@@ -313,7 +314,7 @@ const Sources = () => {
             {/* Loading State */}
             {isLoading && (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                <Loader fullScreen={false} size={40} />
               </div>
             )}
 

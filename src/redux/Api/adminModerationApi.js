@@ -15,6 +15,10 @@ const adminModerationApi = apiSlice.injectEndpoints({
           params.set("ordering", filters.ordering);
         if (filters.search)
           params.set("search", filters.search);
+        if (filters.page)
+          params.set("page", filters.page);
+        if (filters.page_size)
+          params.set("page_size", filters.page_size);
         const qs = params.toString();
         return {
           url: `/moderation-queue/${qs ? `?${qs}` : ""}`,
@@ -39,14 +43,63 @@ const adminModerationApi = apiSlice.injectEndpoints({
       invalidatesTags: ["ModerationQueue"],
     }),
 
+    getSnapshotToday: builder.query({
+      query: () => ({
+        url: "/snapshot/today/",
+        method: "GET",
+      }),
+    }),
+
+    getTopSourcesToday: builder.query({
+      query: () => ({
+        url: "/snapshot/top-sources-today/",
+        method: "GET",
+      }),
+    }),
+
+    getArticleDetail: builder.query({
+      query: (id) => ({
+        url: `/moderation-queue/${id}/`,
+        method: "GET",
+      }),
+    }),
+
+    recordArticleRead: builder.mutation({
+      query: (id) => ({
+        url: `/moderation-queue/${id}/record-read/`,
+        method: "POST",
+      }),
+    }),
+
+    reprocessArticle: builder.mutation({
+      query: (article_id) => ({
+        url: `/ai/articles/${article_id}/reprocess/`,
+        method: "POST",
+        body: { article_id },
+      }),
+      invalidatesTags: ["ModerationQueue"],
+    }),
+
+    getRelatedArticles: builder.query({
+      query: (id) => ({
+        url: `/moderation-queue/${id}/related-articles/`,
+        method: "GET",
+      }),
+    }),
+
   }),
 });
 
 
 export const {
-  
   useGetModerationQueueQuery,
   useGetDatasourcenamesQuery,
   useUpdateModerationStatusMutation,
+  useGetSnapshotTodayQuery,
+  useGetTopSourcesTodayQuery,
+  useLazyGetArticleDetailQuery,
+  useRecordArticleReadMutation,
+  useLazyGetRelatedArticlesQuery,
+  useReprocessArticleMutation,
 
 } = adminModerationApi;

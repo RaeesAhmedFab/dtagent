@@ -10,6 +10,9 @@ const All = ({
   setSelectedSource,
   selectedProduct,
   setSelectedProduct,
+  page,
+  setPage,
+  totalPages,
 }) => (
   <div className="p-6">
     <ArticleList
@@ -22,6 +25,9 @@ const All = ({
       setSelectedSource={setSelectedSource}
       selectedProduct={selectedProduct}
       setSelectedProduct={setSelectedProduct}
+      page={page}
+      setPage={setPage}
+      totalPages={totalPages}
     />
   </div>
 );

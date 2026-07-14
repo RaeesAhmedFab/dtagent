@@ -10,14 +10,15 @@ const ModerationQueue = () => {
   const [selectedSource, setSelectedSource] = React.useState("all");
   const [selectedProduct, setSelectedProduct] = React.useState("all");
   const [tab, setTab] = React.useState("all");
+  const [page, setPage] = React.useState(1);
 
   const apiFilters = useMemo(() => {
-    const filters = {};
+    const filters = { page_size: 20, page };
     if (selectedSource !== "all") filters.source_name = selectedSource;
     if (selectedProduct !== "all") filters.category = selectedProduct;
     if (tab !== "all") filters.status = tab;
     return filters;
-  }, [selectedSource, selectedProduct, tab]);
+  }, [selectedSource, selectedProduct, tab, page]);
 
   const { data: moderationqueue, isLoading: isQueueLoading } =
     useGetModerationQueueQuery(apiFilters);
@@ -29,10 +30,16 @@ const ModerationQueue = () => {
     [moderationqueue]
   );
 
-  const liveCount = queueResults.filter((d) => d.status === "live").length;
-  const removedCount = queueResults.filter(
-    (d) => d.status === "removed"
-  ).length;
+  const totalCount = moderationqueue?.data?.count || 0;
+  const totalPages = useMemo(() => {
+    if (!totalCount) return 0;
+    return Math.ceil(totalCount / 20);
+  }, [totalCount]);
+
+ 
+
+
+
 
   const uniqueCategories = useMemo(() => {
     const cats = new Set();
@@ -56,19 +63,19 @@ const ModerationQueue = () => {
             value="all"
             className="cursor-pointer rounded-none border-l-0 border-t-0 border-r-0 border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent px-4 pb-2.5 text-[14px]"
           >
-            All ({queueResults.length})
+            All 
           </TabsTrigger>
           <TabsTrigger
             value="live"
             className="cursor-pointer rounded-none border-l-0 border-t-0 border-r-0 border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent px-4 pb-2.5 text-[14px]"
           >
-            Live ({liveCount})
+            Live 
           </TabsTrigger>
           <TabsTrigger
             value="removed"
             className="cursor-pointer rounded-none border-l-0 border-t-0 border-r-0 border-b-2 border-transparent data-[state=active]:border-gray-900 data-[state=active]:bg-transparent px-4 pb-2.5 text-[14px]"
           >
-            Removed ({removedCount})
+            Removed 
           </TabsTrigger>
         </TabsList>
         <TabsContent value="all">
@@ -82,6 +89,9 @@ const ModerationQueue = () => {
             setSelectedSource={setSelectedSource}
             selectedProduct={selectedProduct}
             setSelectedProduct={setSelectedProduct}
+            page={page}
+            setPage={setPage}
+            totalPages={totalPages}
           />
         </TabsContent>
         <TabsContent value="live">
@@ -95,6 +105,9 @@ const ModerationQueue = () => {
             setSelectedSource={setSelectedSource}
             selectedProduct={selectedProduct}
             setSelectedProduct={setSelectedProduct}
+            page={page}
+            setPage={setPage}
+            totalPages={totalPages}
           />
         </TabsContent>
         <TabsContent value="removed">
@@ -108,6 +121,9 @@ const ModerationQueue = () => {
             setSelectedSource={setSelectedSource}
             selectedProduct={selectedProduct}
             setSelectedProduct={setSelectedProduct}
+            page={page}
+            setPage={setPage}
+            totalPages={totalPages}
           />
         </TabsContent>
       </Tabs>

@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import './App.css'
 import LandingPage from './pages/LandingPage'
 import SidebarLayout from './layout/SideBarLayout'
@@ -17,8 +19,33 @@ import AskAgentChart from './pages/memeber/AskAgentChart'
 import AdminLogin from './pages/auth/AdminLogin'
 import ForgetPassword from './pages/auth/ForgetPassword'
 import ResetPassword from './pages/auth/ResetPassword'
+import MembershipCallback from './pages/auth/MembershipCallback'
+import { setCredentials } from './redux/apiSlice/authSlice'
 
 function App() {
+  const dispatch = useDispatch()
+  const user = useSelector((state) => state.auth.user)
+
+  useEffect(() => {
+    if (!user) {
+      try {
+        const stored = localStorage.getItem('auth_data')
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          if (parsed?.user) {
+            dispatch(
+              setCredentials({
+                user: parsed.user,
+                token: parsed.tokens?.access?.token || parsed.access,
+                refreshToken: parsed.tokens?.refresh?.token || parsed.refresh,
+              })
+            )
+          }
+        }
+      } catch (_err) { void _err }
+    }
+  }, [user, dispatch])
+
   return (
     <BrowserRouter>
       <Routes>
@@ -26,6 +53,7 @@ function App() {
         <Route path="/login" element={<AdminLogin />} />
         <Route path="/forgot-password" element={<ForgetPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/auth/ym/call-back" element={<MembershipCallback />} />
         <Route path='/admin/' element={<SidebarLayout role="admin" />}>
           <Route path='dashboard' element={<AdminDashboard />} />
           <Route path='moderationqueue' element={<Moderationqueue />} />

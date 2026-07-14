@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
-const analyticsData = [
+const fallbackData = [
   {
     title: "Email digest",
     value: "48.2%",
@@ -25,10 +25,12 @@ const analyticsData = [
   },
 ];
 
-const AnalyticStatsCard = () => {
+const AnalyticStatsCard = ({ data: propData }) => {
+  const items = propData || fallbackData;
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {analyticsData.map((item) => (
+      {items.map((item) => (
         <Card key={item.title} className="shadow-sm border border-gray-200 rounded-xl">
           <CardContent className="pt-5 pb-4 px-5">
             <p className="text-[13px] font-medium text-gray-700 mb-2">{item.title}</p>

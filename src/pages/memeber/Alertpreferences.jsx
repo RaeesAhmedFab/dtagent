@@ -1,8 +1,22 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Check, Info } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Check, Info, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  useGetNotificationPreferencesQuery,
+  useUpdateNotificationPreferencesMutation,
+} from "../../redux/Api/adminapi";
 
 const EMAIL_OPTIONS = [
   {
@@ -23,8 +37,80 @@ const EMAIL_OPTIONS = [
 ];
 
 const Alertpreferences = () => {
-  const [digest, setDigest]   = useState("off");
-  const [smsOn,  setSmsOn]   = useState(true);
+  const { data: prefsData, isLoading: isFetching } =
+    useGetNotificationPreferencesQuery();
+  const [updatePrefs, { isLoading: isSaving }] =
+    useUpdateNotificationPreferencesMutation();
+
+  const [digest, setDigest] = useState("off");
+  const [smsOn, setSmsOn] = useState(false);
+  const [phoneDisplay, setPhoneDisplay] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+
+  // Dialog state
+  const [showPhoneDialog, setShowPhoneDialog] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
+
+  // Populate local state from API response once data arrives
+  const prefInitialized = useRef(false);
+  useEffect(() => {
+    if (prefsData?.data && !prefInitialized.current) {
+      const p = prefsData.data;
+      setDigest(p.email_digest || "off");
+      setSmsOn(p.sms_alert ?? false);
+      setPhoneDisplay(p.phone_number_display || "");
+      setPhoneNumber(p.phone_number || "");
+      prefInitialized.current = true;
+    }
+  }, [prefsData]);
+
+  const handleSmsToggle = (checked) => {
+    if (checked && !phoneNumber) {
+      // No phone number saved yet — open dialog to collect it
+      setPhoneInput("");
+      setShowPhoneDialog(true);
+    } else {
+      setSmsOn(checked);
+    }
+  };
+
+  const handlePhoneDialogConfirm = () => {
+    const trimmed = phoneInput.trim();
+    if (!trimmed) {
+      toast.error("Please enter a phone number.");
+      return;
+    }
+    setPhoneNumber(trimmed);
+    setPhoneDisplay(trimmed);
+    setSmsOn(true);
+    setShowPhoneDialog(false);
+  };
+
+  const handleSave = async () => {
+    try {
+      const payload = {
+        email_digest: digest,
+        sms_alert: smsOn,
+      };
+      if (phoneNumber) {
+        payload.phone_number = phoneNumber;
+      }
+      await updatePrefs(payload).unwrap();
+      toast.success("Notification preferences saved.");
+    } catch (err) {
+      toast.error(
+        err?.data?.message || "Failed to save preferences. Please try again."
+      );
+    }
+  };
+
+  if (isFetching) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-[#1b4b8a]" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col w-full max-w-2xl">
@@ -70,12 +156,14 @@ const Alertpreferences = () => {
           <div className="flex items-start gap-3 mb-4">
             <Switch
               checked={smsOn}
-              onCheckedChange={setSmsOn}
+              onCheckedChange={handleSmsToggle}
               className="mt-0.5 data-[state=checked]:bg-[#1b4b8a]"
             />
             <div>
               <p className="text-[13px] font-semibold text-gray-900 leading-tight mb-0.5">
-                Daily SMS to (***) ***-4192
+                {phoneDisplay
+                  ? `Daily SMS to ${phoneDisplay}`
+                  : "Daily SMS"}
               </p>
               <p className="text-[12px] text-gray-400">
                 One text per day at 8:00 AM EST. Reply STOP at any time to unsubscribe.
@@ -94,11 +182,55 @@ const Alertpreferences = () => {
         </CardContent>
       </Card>
 
+      {/* ── Phone number dialog ── */}
+      <Dialog open={showPhoneDialog} onOpenChange={setShowPhoneDialog}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Enter phone number</DialogTitle>
+            <DialogDescription>
+              A phone number is required to enable SMS alerts.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Input
+            type="tel"
+            placeholder="+1 (555) 123-4192"
+            value={phoneInput}
+            onChange={(e) => setPhoneInput(e.target.value)}
+          />
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              className="cursor-pointer"
+              onClick={() => setShowPhoneDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-[#1b4b8a] hover:bg-[#163d72] cursor-pointer"
+              onClick={handlePhoneDialogConfirm}
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Action buttons ── */}
       <div className="flex justify-end items-center gap-3 mt-4">
         <Button variant="outline" className="cursor-pointer">Cancel</Button>
-        <Button className="bg-[#1b4b8a] hover:bg-[#163d72] cursor-pointer gap-1.5">
-          <Check size={13} /> Save preferences
+        <Button
+          className="bg-[#1b4b8a] hover:bg-[#163d72] cursor-pointer gap-1.5"
+          onClick={handleSave}
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Check size={13} />
+          )}
+          Save preferences
         </Button>
       </div>
 
