@@ -259,13 +259,13 @@ const MemberRoster = () => {
 
           {/* Tier filter dropdown */}
           <Select value={filterTier} onValueChange={setFilterTier}>
-            <SelectTrigger className="w-[180px] h-8 text-[12px]">
+            <SelectTrigger className="w-45 h-8 text-[12px] cursor-pointer">
               <SelectValue placeholder="All tiers" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all" className="text-[12px]">All tiers</SelectItem>
               {allTiers.map((tier) => (
-                <SelectItem key={tier} value={tier} className="text-[12px]">
+                <SelectItem key={tier} value={tier} className="text-[12px] cursor-pointer">
                   {tier}
                 </SelectItem>
               ))}
@@ -309,6 +309,13 @@ const MemberRoster = () => {
             </TableHeader>
 
             <TableBody>
+              {filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center text-gray-400 py-4">
+                    No members found.
+                  </TableCell>
+                </TableRow>
+              )}
               {filtered.map((m, i) => (
                 <TableRow key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
 

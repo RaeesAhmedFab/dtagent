@@ -45,7 +45,6 @@ import {
 } from "@/components/ui/collapsible";
 import Logo from "@/assets/dtagent.png";
 import { AskAgentDrawer } from "../models/AskAgentDrawer";
-import { useGetTopSourcesTodayQuery } from "../redux/Api/adminModerationApi";
 import { logout } from "../redux/apiSlice/authSlice";
 // ── NEW: import context ──────────────────────────────────────────
 import {
@@ -578,7 +577,7 @@ export default function SidebarLayout({ role = "admin" }) {
                     navigate("/login", { replace: true });
                   }}
                   title="Sign out"
-                  className="w-9 h-9 rounded-[9px] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#e63946]"
+                  className="w-9 h-9 rounded-[9px] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#e63946] cursor-pointer "
                 >
                   <LogOut />
                 </Button>

@@ -128,8 +128,8 @@ const Settings = () => {
       <DangerZoneCard />
 
       <div className="flex justify-end gap-3 mt-6">
-        <Button variant="outline">Discard changes</Button>
-        <Button onClick={handleSave} className="gap-2" disabled={isSaving}>
+        <Button variant="outline" className="cursor-pointer" >Discard changes</Button>
+        <Button onClick={handleSave} className="gap-2 cursor-pointer " disabled={isSaving}>
           <Check className="h-4 w-4" />
           {isSaving ? 'Saving...' : saved ? 'Saved!' : 'Save settings'}
         </Button>

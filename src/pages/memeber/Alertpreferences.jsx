@@ -17,6 +17,7 @@ import {
   useGetNotificationPreferencesQuery,
   useUpdateNotificationPreferencesMutation,
 } from "../../redux/Api/adminapi";
+import Loader from "../../components/Loader"
 
 const EMAIL_OPTIONS = [
   {
@@ -106,9 +107,9 @@ const Alertpreferences = () => {
 
   if (isFetching) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-[#1b4b8a]" />
-      </div>
+     <>
+     <Loader/>
+     </>
     );
   }
 
