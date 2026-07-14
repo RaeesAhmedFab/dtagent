@@ -55,19 +55,68 @@ const All = ({ onArticleClick, articles = [], isLoading, page = 1, totalPages = 
                 >
                   <ChevronLeft size={14} />
                 </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <Button
-                    key={p}
-                    variant={p === page ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => onPageChange(p)}
-                    className={`min-w-[32px] cursor-pointer ${
-                      p === page ? "bg-[#0f2d5c] text-white" : ""
-                    }`}
-                  >
-                    {p}
-                  </Button>
-                ))}
+                {(() => {
+                  const getPageNumbers = () => {
+                    const pages = new Set();
+                    const siblingCount = 1;
+                    const boundaryCount = 3;
+
+                    // Always show first boundaryCount pages
+                    for (let i = 1; i <= Math.min(boundaryCount, totalPages); i++) {
+                      pages.add(i);
+                    }
+
+                    // Show pages around current page
+                    for (let i = Math.max(boundaryCount + 1, page - siblingCount); i <= Math.min(totalPages - boundaryCount, page + siblingCount); i++) {
+                      pages.add(i);
+                    }
+
+                    // Always show last boundaryCount pages
+                    for (let i = Math.max(totalPages - boundaryCount + 1, boundaryCount + 1); i <= totalPages; i++) {
+                      pages.add(i);
+                    }
+
+                    // Sort pages
+                    const sorted = [...pages].sort((a, b) => a - b);
+
+                    // Insert ellipsis markers
+                    const result = [];
+                    for (let i = 0; i < sorted.length; i++) {
+                      if (i > 0 && sorted[i] - sorted[i - 1] > 1) {
+                        result.push("ellipsis");
+                      }
+                      result.push(sorted[i]);
+                    }
+
+                    return result;
+                  };
+
+                  return getPageNumbers().map((p, idx) => {
+                    if (p === "ellipsis") {
+                      return (
+                        <span
+                          key={`ellipsis-${idx}`}
+                          className="px-1 text-gray-400 text-sm select-none"
+                        >
+                          ...
+                        </span>
+                      );
+                    }
+                    return (
+                      <Button
+                        key={p}
+                        variant={p === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => onPageChange(p)}
+                        className={`min-w-[32px] cursor-pointer ${
+                          p === page ? "bg-[#0f2d5c] text-white" : ""
+                        }`}
+                      >
+                        {p}
+                      </Button>
+                    );
+                  });
+                })()}
                 <Button
                   variant="outline"
                   size="sm"

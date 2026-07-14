@@ -312,7 +312,7 @@ const ArticleList = ({
       <Card className="w-full">
         <CardContent className="flex justify-between items-center pt-5 pb-4 px-5 flex-wrap gap-3">
           <p className="text-[15px] font-semibold text-gray-800">
-            Articles ingested in the past 48 hours
+            Articles ingested 
           </p>
           <div className="flex items-center flex-wrap gap-2">
             <Select value={selectedSource} onValueChange={setSelectedSource}>

@@ -165,13 +165,13 @@ const ROLE_CONFIG = {
 
 // ── NEW: Category data for inline sidebar filter ──────────────────
 const SIDEBAR_CATEGORIES = [
-  { key: "TECHNOLOGY", label: "Technology", dot: "bg-blue-600" },
-  { key: "HYGIENE", label: "Hygiene", dot: null },
-  { key: "PRODUCTS", label: "Products", dot: "bg-orange-500" },
-  { key: "REGULATIONS", label: "Regulations", dot: null },
-  { key: "CLINICAL", label: "Clinical", dot: "bg-red-500" },
-  { key: "BUSINESS", label: "Business", dot: null },
-  { key: "MAINSTREAM", label: "Mainstream", dot: "bg-gray-600" },
+  { key: "technology", label: "Technology", dot: "bg-blue-600" },
+  { key: "hygiene", label: "Hygiene", dot: null },
+  { key: "products", label: "Products", dot: "bg-orange-500" },
+  { key: "regulation", label: "Regulations", dot: null },
+  { key: "clinical", label: "Clinical", dot: "bg-red-500" },
+  { key: "business", label: "Business", dot: null },
+  { key: "mainstream", label: "Mainstream", dot: "bg-gray-600" },
 ];
 
 // ── NEW: Inline category filter rendered inside the sidebar ───────

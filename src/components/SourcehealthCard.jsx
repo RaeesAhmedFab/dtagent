@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
-const MockData = [
+const defaultData = [
   { badge: "ID",  name: "Inside Dentistry",          time: "4:58 AM", count: 14, status: "green"  },
   { badge: "IDH", name: "Inside Dental Hygiene",      time: "5:01 AM", count: 6,  status: "green"  },
   { badge: "CX",  name: "Conexiant Dental",           time: "5:02 AM", count: 9,  status: "green"  },
@@ -18,7 +18,11 @@ const statusStyles = {
   red:    { dot: "bg-red-500",    badge: "bg-red-100 text-red-800"      },
 };
 
-const SourceHealth = () => {
+const SourceHealth = ({ data: propData, healthyCount, totalCount }) => {
+  const sources = propData || defaultData;
+  const healthy = healthyCount ?? sources.filter(s => s.status === "green").length;
+  const total = totalCount ?? sources.length;
+
   return (
     <div className="">
       <Card>
@@ -26,15 +30,13 @@ const SourceHealth = () => {
           <p className="text-[15px] font-semibold text-gray-800">Source health</p>
           <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-green-800 bg-green-100 border border-green-300 rounded-full px-3 py-1">
             <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-            10 / 11 healthy
+            {healthy} / {total} healthy
           </span>
         </CardContent>
 
-        {/* <Separator /> */}
-
         <CardContent className="p-0">
-          {MockData.map((item, index) => {
-            const s = statusStyles[item.status];
+          {sources.map((item, index) => {
+            const s = statusStyles[item.status] || statusStyles.green;
             return (
               <div key={item.badge + index}>
                 <div className="flex items-center gap-3 py-3 px-5 hover:bg-gray-100 ">
@@ -50,7 +52,7 @@ const SourceHealth = () => {
                     {item.count}
                   </span>
                 </div>
-                {index < MockData.length - 1 && <Separator />}
+                {index < sources.length - 1 && <Separator />}
               </div>
             );
           })}

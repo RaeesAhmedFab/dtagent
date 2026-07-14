@@ -1,68 +1,9 @@
 import { Doughnut } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect } from "react";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
-
-// Center text plugin
-const centerTextPlugin = {
-  id: "centerText",
-  beforeDraw(chart) {
-    const { ctx, chartArea } = chart;
-    if (!chartArea) return;
-    const cx = (chartArea.left + chartArea.right) / 2;
-    const cy = (chartArea.top + chartArea.bottom) / 2;
-
-    ctx.save();
-
-    // "92"
-    ctx.font = "bold 28px sans-serif";
-    ctx.fillStyle = "#1a1a2e";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("92", cx, cy - 8);
-
-    // "ARTICLES"
-    ctx.font = "600 10px sans-serif";
-    ctx.fillStyle = "#9ca3af";
-    ctx.letterSpacing = "0.1em";
-    ctx.fillText("ARTICLES", cx, cy + 14);
-
-    ctx.restore();
-  },
-};
-
-ChartJS.register(centerTextPlugin);
-
-const data = {
-  labels: [
-    "Clinical",
-    "Technology",
-    "Regulations",
-    "Business",
-    "Hygiene",
-    "Products",
-    "Mainstream",
-  ],
-  datasets: [
-    {
-      label: "Articles",
-      data: [24, 18, 14, 13, 11, 8, 4],
-      backgroundColor: [
-        "rgb(224, 49, 49)",
-        "rgb(25, 113, 194)",
-        "rgb(112, 72, 232)",
-        "rgb(33, 37, 41)",
-        "rgb(47, 158, 68)",
-        "rgb(230, 119, 0)",
-        "rgb(134, 142, 150)",
-      ],
-      hoverOffset: 4,
-      borderWidth: 1.5,
-      borderColor: "#ffffff",
-    },
-  ],
-};
 
 const options = {
   responsive: true,
@@ -77,13 +18,82 @@ const options = {
   },
 };
 
-const legendItems = data.labels.map((label, i) => ({
-  label,
-  value: data.datasets[0].data[i],
-  color: data.datasets[0].backgroundColor[i],
-}));
+const defaultColors = [
+  "rgb(224, 49, 49)",
+  "rgb(25, 113, 194)",
+  "rgb(112, 72, 232)",
+  "rgb(33, 37, 41)",
+  "rgb(47, 158, 68)",
+  "rgb(230, 119, 0)",
+  "rgb(134, 142, 150)",
+];
 
-export default function CategoryMix() {
+export default function CategoryMix({ data: propData, total: propTotal }) {
+  const labels = propData?.labels || [
+    "Clinical",
+    "Technology",
+    "Regulations",
+    "Business",
+    "Hygiene",
+    "Products",
+    "Mainstream",
+  ];
+  const values = propData?.values || [24, 18, 14, 13, 11, 8, 4];
+  const total = propTotal || values.reduce((sum, v) => sum + v, 0);
+
+  // Register/unregister center text plugin dynamically based on total
+  useEffect(() => {
+    const centerTextPlugin = {
+      id: "centerText",
+      beforeDraw(chart) {
+        const { ctx, chartArea } = chart;
+        if (!chartArea) return;
+        const cx = (chartArea.left + chartArea.right) / 2;
+        const cy = (chartArea.top + chartArea.bottom) / 2;
+
+        ctx.save();
+
+        ctx.font = "bold 28px sans-serif";
+        ctx.fillStyle = "#1a1a2e";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(total), cx, cy - 8);
+
+        ctx.font = "600 10px sans-serif";
+        ctx.fillStyle = "#9ca3af";
+        ctx.letterSpacing = "0.1em";
+        ctx.fillText("ARTICLES", cx, cy + 14);
+
+        ctx.restore();
+      },
+    };
+
+    ChartJS.register(centerTextPlugin);
+    return () => {
+      ChartJS.unregister(centerTextPlugin);
+    };
+  }, [total]);
+
+  const data = {
+    labels,
+    datasets: [
+      {
+        label: "Articles",
+        data: values,
+        backgroundColor: defaultColors.slice(0, values.length),
+        hoverOffset: 4,
+        borderWidth: 1.5,
+        borderColor: "#ffffff",
+      },
+    ],
+  };
+
+  const legendItems = labels.map((label, i) => ({
+    label,
+    value: values[i],
+    color: defaultColors[i % defaultColors.length],
+  }));
+
   return (
     <div className="">
       <Card className="w-full h-full shadow-sm border border-gray-200 rounded-xl">

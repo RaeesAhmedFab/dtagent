@@ -4,13 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, X } from "lucide-react";
 
 const CATEGORIES = [
-  { key: "TECHNOLOGY",  label: "Technology",  count: 2, dot: "bg-blue-600"   },
-  { key: "HYGIENE",     label: "Hygiene",      count: 2, dot: null            },
-  { key: "PRODUCTS",    label: "Products",     count: 1, dot: "bg-orange-500" },
-  { key: "REGULATIONS", label: "Regulations",  count: 4, dot: null            },
-  { key: "CLINICAL",    label: "Clinical",     count: 5, dot: "bg-red-500"    },
-  { key: "BUSINESS",    label: "Business",     count: 4, dot: null            },
-  { key: "MAINSTREAM",  label: "Mainstream",   count: 0, dot: "bg-gray-600"   },
+  { key: "technology",  label: "Technology",  count: 2, dot: "bg-blue-600"   },
+  { key: "hygiene",     label: "Hygiene",      count: 2, dot: null            },
+  { key: "products",    label: "Products",     count: 1, dot: "bg-orange-500" },
+  { key: "regulation", label: "Regulations",  count: 4, dot: null            },
+  { key: "clinical",    label: "Clinical",     count: 5, dot: "bg-red-500"    },
+  { key: "business",    label: "Business",     count: 4, dot: null            },
+  { key: "mainstream",  label: "Mainstream",   count: 0, dot: "bg-gray-600"   },
 ];
 
 const JOKES = [

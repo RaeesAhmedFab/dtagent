@@ -79,9 +79,9 @@ const Settings = () => {
 
   return (
     <div className="">
-      <ProfileCard />
+      {/* <ProfileCard />
 
-      <UpdatePasswordCard />
+      <UpdatePasswordCard /> */}
 
       <AISummarizationCard
         aiModel={aiModel}

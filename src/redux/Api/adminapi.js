@@ -62,6 +62,18 @@ const adminApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["NotificationPreferences"],
     }),
+    getCategoryMixToday: builder.query({
+      query: () => ({
+        url: "/snapshot/category-mix-today/",
+        method: "GET",
+      }),
+    }),
+    getSourceHealthToday: builder.query({
+      query: () => ({
+        url: "/snapshot/source-health-today/",
+        method: "GET",
+      }),
+    }),
   }),
 });
 export const {
@@ -75,4 +87,6 @@ export const {
   useGetMeQuery,
   useGetNotificationPreferencesQuery,
   useUpdateNotificationPreferencesMutation,
+  useGetCategoryMixTodayQuery,
+  useGetSourceHealthTodayQuery,
 } = adminApi;
