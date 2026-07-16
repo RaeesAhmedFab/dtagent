@@ -2,27 +2,48 @@ import { useState, useRef, useEffect } from "react";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useSelector } from "react-redux";
+import { useChatStream } from "@/hooks/useChatStream";
 import Logo from "@/assets/dtagent.png"
-// ─── Constants ────────────────────────────────────────────────────
-const QUICK_PROMPTS = [
-  "Show me today's top stories",
-  "Any news about new dental technology?",
-  "Summarize regulatory changes this week",
-  "What's happening in dental hygiene?",
-  "Tell me a dental joke",
-];
 
-const INITIAL_MESSAGES = [
-  {
-    id: 1,
-    role: "agent",
-    text: "Good morning! 🌟 I'm DTAgent, your DTA news concierge. We've got 92 fresh stories from your 11 sources today — including a big ADA infection-control update. Want me to walk you through the highlights, or is there something specific on your mind?",
-  },
-];
+// ─── Streaming endpoint & persistence ─────────────────────────────
+const STREAM_API_URL = `${(import.meta.env.VITE_BASE_URL || "").replace(
+  /\/$/,
+  ""
+)}/ai/chat/stream/`;
+
+// Bumped to v2 so any previously persisted hardcoded welcome message (and
+// older doubled-content state) from the removed INITIAL_MESSAGES is discarded
+// and the page starts in a clean, empty state.
+const GLOBAL_HISTORY_KEY = "ask-agent-global-chart-history-v2";
+
+const loadGlobalHistory = () => {
+  try {
+    // Drop the stale pre-v2 store so the old welcome message can't resurface.
+    localStorage.removeItem("ask-agent-global-chart-history");
+    const raw = localStorage.getItem(GLOBAL_HISTORY_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.messages)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const saveGlobalHistory = (messages, sessionId) => {
+  try {
+    localStorage.setItem(
+      GLOBAL_HISTORY_KEY,
+      JSON.stringify({ messages, session_id: sessionId || null })
+    );
+  } catch {
+    // Ignore storage errors (e.g. quota / private mode)
+  }
+};
 
 // ─── Agent Avatar ─────────────────────────────────────────────────
 const AgentAvatar = ({ size = "w-10 h-10", fontSize = "text-[13px]" }) => (
@@ -50,8 +71,42 @@ const MessageBubble = ({ msg }) => {
       <div className="w-8 h-8 rounded-full bg-[#0f2d5c] text-white text-[12px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
         P
       </div>
-      <div className="max-w-[75%] bg-blue-50 text-gray-900 text-[14px] leading-relaxed px-4 py-3 rounded-2xl rounded-tl-sm">
-        {msg.text}
+      <div className="max-w-[75%] bg-blue-50 text-gray-900 rounded-2xl rounded-tl-sm px-4 py-3">
+        <div className="text-[14px] leading-relaxed whitespace-pre-wrap">
+          {msg.text}
+        </div>
+
+        {Array.isArray(msg.sources) && msg.sources.length > 0 && (
+          <div className="mt-3 flex flex-col gap-2">
+            {msg.sources.map((s, si) => {
+              const host = (() => {
+                try {
+                  return s?.url ? new URL(s.url).hostname.replace(/^www\./, "") : "";
+                } catch {
+                  return "";
+                }
+              })();
+              return (
+                <a
+                  key={s?.chunk_id || si}
+                  href={s?.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block p-3 rounded-lg border border-gray-200 bg-white hover:border-[#1b4b8a] transition-colors"
+                >
+                  {host && (
+                    <p className="text-[10px] font-semibold text-gray-400 tracking-wide uppercase mb-1 truncate">
+                      {host}
+                    </p>
+                  )}
+                  <p className="text-[13px] font-semibold text-gray-900 leading-snug">
+                    {s?.title || s?.url}
+                  </p>
+                </a>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -77,16 +132,40 @@ const TypingIndicator = () => (
 
 // ─── Main component ───────────────────────────────────────────────
 const AskAgentChart = () => {
-  const [messages,    setMessages]    = useState(INITIAL_MESSAGES);
+  const [messages,    setMessages]    = useState([]);
   const [input,       setInput]       = useState("");
   const [queriesLeft, setQueriesLeft] = useState(20);
-  const [isTyping,    setIsTyping]    = useState(false);
+  const [sessionId,   setSessionId]   = useState(null);
   const bottomRef   = useRef(null);
   const textareaRef = useRef(null);
+  const token = useSelector((state) => state.auth?.token);
+
+  const { sendMessage: streamMessage, isStreaming } = useChatStream(STREAM_API_URL, {
+    getHeaders: () => ({
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    }),
+  });
+
+  // Restore the persisted global conversation on first mount.
+  useEffect(() => {
+    const history = loadGlobalHistory();
+    if (history) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMessages(history.messages);
+      setSessionId(history.session_id || null);
+      setQueriesLeft((q) => Math.max(0, q - history.messages.filter((m) => m.role === "user").length));
+    }
+  }, []);
+
+  // Persist the conversation on every change.
+  useEffect(() => {
+    saveGlobalHistory(messages, sessionId);
+  }, [messages, sessionId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+  }, [messages, isStreaming]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -98,24 +177,67 @@ const AskAgentChart = () => {
 
   const sendMessage = (text) => {
     const trimmed = text.trim();
-    if (!trimmed || queriesLeft <= 0) return;
+    if (!trimmed || isStreaming || queriesLeft <= 0) return;
 
-    setMessages((prev) => [...prev, { id: Date.now(), role: "user", text: trimmed }]);
+    // Add user message and an empty assistant placeholder that will fill in as
+    // the stream progresses.
+    setMessages((prev) => [
+      ...prev,
+      { id: Date.now(), role: "user", text: trimmed },
+      { id: Date.now() + 1, role: "agent", text: "" },
+    ]);
     setInput("");
     setQueriesLeft((q) => q - 1);
-    setIsTyping(true);
 
-    setTimeout(() => {
-      setIsTyping(false);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          role: "agent",
-          text: "I'm looking into that for you. Here's what I found from today's 92 articles across your 11 sources…",
+    // First message: no session_id; subsequent messages: include session_id.
+    const extraBody = {};
+    if (sessionId) {
+      extraBody.session_id = sessionId;
+    }
+
+    let assistantText = "";
+
+    streamMessage(
+      trimmed,
+      {
+        onChunk: (chunk) => {
+          assistantText += chunk;
+          setMessages((prev) => {
+            const next = [...prev];
+            if (next.length > 0 && next[next.length - 1].role === "agent") {
+              next[next.length - 1] = { ...next[next.length - 1], text: assistantText };
+            }
+            return next;
+          });
         },
-      ]);
-    }, 1200);
+        onDone: (newSessionId, sources) => {
+          if (newSessionId) {
+            setSessionId(newSessionId);
+          }
+          if (Array.isArray(sources) && sources.length > 0) {
+            setMessages((prev) => {
+              const next = [...prev];
+              if (next.length > 0 && next[next.length - 1].role === "agent") {
+                next[next.length - 1] = { ...next[next.length - 1], sources };
+              }
+              return next;
+            });
+          }
+        },
+        onError: (err) => {
+          const errorText =
+            err?.data?.message || err?.message || "Something went wrong. Please try again.";
+          setMessages((prev) => {
+            const next = [...prev];
+            if (next.length > 0 && next[next.length - 1].role === "agent") {
+              next[next.length - 1] = { ...next[next.length - 1], text: errorText };
+            }
+            return next;
+          });
+        },
+      },
+      extraBody,
+    );
   };
 
   const handleKey = (e) => {
@@ -152,34 +274,26 @@ const AskAgentChart = () => {
         {/* Messages */}
         <ScrollArea className="h-[360px] px-5 py-5">
           <div className="flex flex-col gap-4">
-            {messages.map((msg) => (
-              <MessageBubble key={msg.id} msg={msg} />
-            ))}
-            {isTyping && <TypingIndicator />}
+            {messages.map((msg, idx) => {
+              // While streaming, the empty agent placeholder is shown as the
+              // TypingIndicator below — don't also render it as an empty bubble
+              // (that produced two stacked agent bubbles).
+              const isStreamingPlaceholder =
+                isStreaming &&
+                idx === messages.length - 1 &&
+                msg.role === "agent" &&
+                !msg.text;
+              if (isStreamingPlaceholder) return null;
+              return <MessageBubble key={msg.id} msg={msg} />;
+            })}
+            {isStreaming &&
+              (() => {
+                const last = messages[messages.length - 1];
+                return last && last.role === "agent" && !last.text ? <TypingIndicator /> : null;
+              })()}
             <div ref={bottomRef} />
           </div>
         </ScrollArea>
-
-        <Separator />
-
-        {/* Quick prompts */}
-        <CardContent className="px-5 pt-4 pb-3">
-          <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase mb-2.5">
-            Quick Prompts
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {QUICK_PROMPTS.map((p) => (
-              <Badge
-                key={p}
-                variant="outline"
-                onClick={() => sendMessage(p)}
-                className="text-[12px] font-normal px-3 py-1.5 rounded-full text-gray-600 border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 cursor-pointer transition-colors"
-              >
-                {p}
-              </Badge>
-            ))}
-          </div>
-        </CardContent>
 
         <Separator />
 

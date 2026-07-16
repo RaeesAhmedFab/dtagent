@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useSelector } from "react-redux"
 import { Send, ClipboardCheck, Settings2, Shield, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useGetUserPreviousMessagesQuery } from "@/redux/api/chatbotApi"
 import { useChatStream } from "@/hooks/useChatStream"
 import { StreamingDots } from "@/components/StreamingDots"
-import Loader from "@/components/ui/Loader"
+import Loader from "@/components/Loader"
 
 const chatApiUrl = `${(import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "")}/chat/auth/`
 
@@ -24,6 +24,90 @@ function formatMessageTime(isoString) {
   return date.toLocaleDateString()
 }
 
+// ─── Reusable streaming chat panel ────────────────────────────────────────────
+// Used by both the full-page AskChatMessage and the AskAgentDrawer
+export function ChatStreamPanel({
+  messages,
+  onSend,
+  isStreaming,
+  input,
+  onInputChange,
+  placeholder = "Ask me anything...",
+  emptyMessage = "No messages yet. Start a conversation.",
+}) {
+  const bottomRef = useRef(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      onSend(input)
+    }
+  }
+
+  return (
+    <div className="flex-1 flex flex-col h-full">
+      {/* Messages */}
+      <div className="flex-1 flex flex-col overflow-hidden rounded-xl border bg-card p-2 space-y-4">
+        <div className="flex-1 flex flex-col gap-4 overflow-auto p-2">
+          {messages?.length > 0 ? messages?.map((msg, i) => (
+            <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
+              {msg.role === "assistant" && (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 overflow-hidden">
+                  <img src="/Favricon_Transparent.png" alt="Roofus" className="w-8 h-8 object-contain" />
+                </div>
+              )}
+              <div className={`max-w-[75%] ${msg.role === "user" ? "text-right" : ""}`}>
+                <div className={`rounded-xl p-4 ${msg.role === "user"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted"
+                  }`}>
+                  <div className="text-sm whitespace-pre-wrap">
+                    {msg.role === "assistant" && isStreaming && !msg.content ? (
+                      <StreamingDots />
+                    ) : (
+                      msg.content
+                    )}
+                  </div>
+                </div>
+                {msg.time && (
+                  <span className="text-xs text-muted-foreground mt-1 block">{msg.time}</span>
+                )}
+              </div>
+            </div>
+          )) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-muted-foreground">{emptyMessage}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Input form */}
+      <form onSubmit={(e) => { e.preventDefault(); onSend(input) }} className="mt-3 p-2 bg-white rounded-xl border">
+        <div className="flex gap-2">
+          <textarea
+            className="flex-1 min-h-[44px] max-h-[120px] rounded-xl border bg-background px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
+            placeholder={isStreaming ? "Waiting for response..." : placeholder}
+            rows={1}
+            value={input}
+            onChange={(e) => onInputChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isStreaming}
+          />
+          <Button type="submit" size="icon" className="h-11 w-11 rounded-xl shrink-0" disabled={isStreaming || !input.trim()}>
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
+// ─── Full-page Ask Chat Message (original, unchanged layout) ──────────────────
 const AskChatMessage = () => {
   const token = useSelector((state) => state.auth?.token)
   const { data: previousMessages = [], isLoading: isLoadingPreviousMessages } = useGetUserPreviousMessagesQuery()
@@ -71,7 +155,7 @@ const AskChatMessage = () => {
   }
 
   const handleSend = async (e) => {
-    e.preventDefault()
+    e?.preventDefault?.()
     if (!input.trim() || isStreaming) return
     const text = input.trim()
     setMessages((prev) => [
@@ -81,7 +165,9 @@ const AskChatMessage = () => {
     ])
     setInput("")
     await sendMessage(text, {
-      onChunk: setLastAssistantMessage,
+      onChunk: (chunk) => {
+        setLastAssistantMessage((prevContent) => (prevContent || "") + chunk)
+      },
       onDone: setLastAssistantTime,
       onError: (err) => {
         const errorText = err?.data?.message || err?.message || "Something went wrong. Please try again."
@@ -91,7 +177,7 @@ const AskChatMessage = () => {
     })
   }
 
-  const pageLoading=isLoadingPreviousMessages
+  const pageLoading = isLoadingPreviousMessages
 
   return (
     <div className="flex gap-6 h-[calc(100vh-130px)]">
@@ -114,60 +200,16 @@ const AskChatMessage = () => {
           </div>
         </div>
 
-        {/* Chat Messages */}
-        <div className="flex-1 flex flex-col overflow-hidden rounded-xl border bg-card p-2 space-y-4">
-          <div className="flex-1 flex flex-col gap-4 overflow-auto p-2">
-            {messages?.length > 0 ? messages?.map((msg, i) => (
-              <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
-                {msg.role === "assistant" && (
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 overflow-hidden">
-                    <img src="/Favricon_Transparent.png" alt="Roofus" className="w-8 h-8 object-contain" />
-                  </div>
-                )}
-                <div className={`max-w-[75%] ${msg.role === "user" ? "text-right" : ""}`}>
-                  <div className={`rounded-xl p-4 ${msg.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted"
-                    }`}>
-                    <div className="text-sm whitespace-pre-wrap">
-                      {msg.role === "assistant" && isStreaming && !msg.content ? (
-                        <StreamingDots />
-                      ) : (
-                        msg.content
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-xs text-muted-foreground mt-1 block">{msg.time}</span>
-                </div>
-              </div>
-            )):
-            <div className="flex items-center justify-center h-full">
-              <p className="text-muted-foreground">No messages found. Please start a new chat.</p>
-            </div>
-            }
-          </div>
-        </div>
-        <form onSubmit={handleSend} className="mt-3 p-2 bg-white rounded-xl border">
-          <div className="flex gap-2">
-            <textarea
-              className="flex-1 min-h-[44px] max-h-[120px] rounded-xl border bg-background px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
-              placeholder={isStreaming ? "Waiting for response..." : "Ask me anything about your roof..."}
-              rows={1}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSend(e)
-                }
-              }}
-              disabled={isStreaming}
-            />
-            <Button type="submit" size="icon" className="h-11 w-11 rounded-xl shrink-0" disabled={isStreaming}>
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-        </form>
+        <ChatStreamPanel
+          messages={messages}
+          onSend={handleSend}
+          isStreaming={isStreaming}
+          input={input}
+          onInputChange={setInput}
+          placeholder="Ask me anything about your roof..."
+          emptyMessage="No messages found. Please start a new chat."
+        />
+
         <p className="text-xs text-muted-foreground text-center mt-2">AI responses are for informational purposes. For major repairs, consult a professional roofer.</p>
       </div>
 
@@ -219,7 +261,5 @@ const AskChatMessage = () => {
     </div>
   )
 }
-
-
 
 export default AskChatMessage

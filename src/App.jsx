@@ -66,6 +66,7 @@ function App() {
         </Route>
         <Route path='/member/' element={<SidebarLayout role="member" />}>
           <Route path='dailydigest' element={<MemberDashboard />} />
+          <Route path='article/:id' element={<MemberDashboard />} />
           <Route path="askagent" element={<AskAgentChart/>}/>
           <Route path="membersettings" element={<MemberSettings/>}/>
           <Route path="alertpreferences" element={<Alertpreferences/>}/>

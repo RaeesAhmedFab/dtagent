@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -37,6 +38,14 @@ const mapArticleItem = (item) => {
 
   return {
     id: item.id,
+    // The list serializer exposes `article_id`; some detail responses nest it
+    // differently, so fall back through the common shapes to keep the real
+    // article id (used by the per-article chat) available.
+    article_id:
+      item.article_id ??
+      item.articleId ??
+      item.article?.id ??
+      (typeof item.article === "number" ? item.article : undefined),
     source,
     sourceKey,
     time,
@@ -55,6 +64,7 @@ const mapArticleItem = (item) => {
     remove_reason: item.remove_reason,
     ai_article_language: item.ai_article_language,
     source_name: item.source_name,
+
   };
 };
 
@@ -67,6 +77,9 @@ const MemberDashboard = () => {
   const [tab, setTab] = useState("all");
   const [page, setPage] = useState(1);
   const { activeFilters } = useDigestFilter();
+  const { id: routeId } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [triggerGetArticleDetail] = useLazyGetArticleDetailQuery();
   const [recordArticleRead] = useRecordArticleReadMutation();
@@ -107,26 +120,48 @@ const MemberDashboard = () => {
     return raw.map(mapArticleItem);
   }, [moderationqueue]);
 
-  const handleArticleClick = async (article) => {
-    if (!article || !article.id) return;
+  // Load an article's details from its id (the moderation record id used in the
+  // route param). Kept independent of the click handler so it can be driven by
+  // the URL, allowing the detail view to survive a browser refresh.
+  const loadArticleDetail = async (id, fallbackArticleId) => {
+    if (!id) return;
 
     setDetailLoading(true);
 
     try {
       // Step 1: Load the article details
-      const detailResult = await triggerGetArticleDetail(article.id).unwrap();
-      const mappedDetail = mapArticleItem(detailResult?.data || detailResult);
+      const detailResult = await triggerGetArticleDetail(id).unwrap();
+      const rawDetail = detailResult?.data || detailResult;
+      const mappedDetail = mapArticleItem(rawDetail);
+
+      // TEMP DIAGNOSTIC: confirms article_id resolved for this article.
+      console.log(
+        "[AskAgent][detail] mapped article_id:", mappedDetail.article_id,
+        "| routeState fallback:", fallbackArticleId
+      );
+
+      // If the detail response doesn't expose article_id, reuse the one carried
+      // over from the list item (via router state) so the per-article chat still
+      // sends the correct article_id.
+      if (
+        (mappedDetail.article_id === undefined ||
+          mappedDetail.article_id === null) &&
+        fallbackArticleId !== undefined &&
+        fallbackArticleId !== null
+      ) {
+        mappedDetail.article_id = fallbackArticleId;
+      }
 
       // Step 2: Display the article details immediately
       setDetail(mappedDetail);
       setDetailLoading(false);
 
       // Step 3: Record the article as read (fire-and-forget after detail is shown)
-      recordArticleRead(article.id);
+      recordArticleRead(id);
 
       // Step 4: Load related articles
       try {
-        const relatedResult = await triggerGetRelatedArticles(article.id).unwrap();
+        const relatedResult = await triggerGetRelatedArticles(id).unwrap();
         const relatedData = relatedResult?.data?.related_articles || relatedResult?.data?.results || relatedResult?.results || relatedResult?.data || [];
         const mappedRelated = Array.isArray(relatedData)
           ? relatedData.slice(0, 3).map(mapArticleItem)
@@ -137,22 +172,50 @@ const MemberDashboard = () => {
         setRelatedArticles([]);
       }
     } catch {
-      // Fallback: if API call fails, use the article data we already have from the list
-      setDetail(article);
+      // Fallback: if the API call fails, use the list item (if still cached)
+      const fallback = articles.find((a) => String(a.id) === String(id)) || null;
       setDetailLoading(false);
       setRelatedArticles([]);
 
-      // Still attempt record-read (fire-and-forget)
-      recordArticleRead(article.id);
+      if (fallback) {
+        setDetail(fallback);
+        // Still attempt record-read (fire-and-forget)
+        recordArticleRead(id);
+      } else {
+        // Nothing to show (e.g. direct refresh with no cache) — return to digest
+        navigate("/member/dailydigest");
+      }
     }
+  };
+
+  // Drive the detail view from the URL. On refresh the route param persists, so
+  // the same article is re-loaded instead of redirecting back to the digest.
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (routeId) {
+      loadArticleDetail(routeId, location.state?.article_id);
+    } else {
+      setDetail(null);
+      setRelatedArticles([]);
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeId]);
+
+  const handleArticleClick = (article) => {
+    if (!article || !article.id) return;
+    navigate(`/member/article/${article.id}`, {
+      state: { article_id: article.article_id },
+    });
   };
 
   const handleBack = (article) => {
     if (article && article.id) {
-      handleArticleClick(article);
+      navigate(`/member/article/${article.id}`, {
+        state: { article_id: article.article_id },
+      });
     } else {
-      setDetail(null);
-      setRelatedArticles([]);
+      navigate("/member/dailydigest");
     }
   };
 
@@ -165,15 +228,15 @@ const MemberDashboard = () => {
 
   return (
     <>
-      {!detail && <TodaysSnapshot />}
+      {!routeId && <TodaysSnapshot />}
 
       <div className="p-4 md:p-6">
-        {detail ? (
+        {routeId ? (
           <ArticleDetail
             article={detail}
             onBack={handleBack}
             relatedArticles={relatedArticles}
-            isLoading={detailLoading}
+            isLoading={detailLoading || !detail}
           />
         ) : (
           <Tabs value={tab} onValueChange={handleTabChange} defaultValue="all">

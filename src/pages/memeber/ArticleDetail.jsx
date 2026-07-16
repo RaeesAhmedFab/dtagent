@@ -21,6 +21,7 @@ const ArticleDetail = ({
 
   const handleOpenAskAgent = () => {
     setAskAgentOpen(true);
+    
   };
 
   if (isLoading) {
@@ -128,7 +129,7 @@ const ArticleDetail = ({
           </p>
         )}
       </div>
-      <AskAgentDrawer Open={AskAgentOpen} onClose={setAskAgentOpen} />
+      <AskAgentDrawer Open={AskAgentOpen} onClose={setAskAgentOpen} article_id={article.article_id} />
     </div>
   );
 };

@@ -311,6 +311,10 @@ export default function SidebarLayout({ role = "admin" }) {
 
   const hideAskAgentButton =
     location.pathname === "/member/askagent" ||
+    // On an article detail page the article-aware "Ask Agent about this"
+    // drawer is used instead, so hide the global (no article context) button
+    // to avoid opening a chat without the article_id.
+    location.pathname.startsWith("/member/article/") ||
     location.pathname.startsWith("/admin");
 
   const activeSection = nav.find((section) =>
