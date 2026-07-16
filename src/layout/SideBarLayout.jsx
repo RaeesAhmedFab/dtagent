@@ -345,15 +345,12 @@ export default function SidebarLayout({ role = "admin" }) {
   const SidebarNav = () => (
     <>
       <SidebarHeader className="px-5 py-[22px] pb-4 border-b border-border gap-0">
-        <div className="flex gap-3 mb-5">
-          <img src={Logo} alt="Logo" className="w-10 h-10" />
-          <div>
+        <div className="">
+          <img src={Logo} alt="Logo" className="" />
+          <div className="mt-1">
             <h1 className="font-semibold">DTAgent</h1>
             <p className="text-[11px] text-muted-foreground">{config.title}</p>
           </div>
-        </div>
-        <div className="text-[11px] text-muted-foreground mt-0.5">
-          STAFF · DTA
         </div>
       </SidebarHeader>
 

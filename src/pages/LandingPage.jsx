@@ -18,7 +18,7 @@ const LandingPage = () => {
         <Card className="max-w-sm w-full p-6 ">
           <CardHeader>
             <div className="flex justify-center mb-5 " >
-              <img src={Logo} alt="Logo" className="w-15 h-15 text-cente" />
+              <img src={Logo} alt="Logo" className="w-40" />
             </div>
             <CardTitle className="flex justify-center text-[22px] mb-2.5" >
               Welcome to DTAgent

@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AdminLoginSchema } from "@/schema/AuthSchema";
-import Logo from "@/assets/dtagent.png";
+import Logo from "@/assets/dtagent-logo.jpeg"
 import MemberPic from "@/assets/yourmember.jpeg";
 import { toast } from "sonner";
 import {
@@ -122,7 +122,7 @@ const AdminLogin = () => {
       <Card className="w-full max-w-sm p-6 shadow-lg">
         <CardHeader className="p-0">
           <div className="flex justify-center mb-5">
-            <img src={Logo} alt="DTAgent" className="h-14 w-14 object-contain" onClick={()=>navigate("/")} />
+            <img src={Logo} alt="DTAgent" className="w-40" onClick={()=>navigate("/")} />
           </div>
           <CardTitle className="text-center text-[22px]">
             Welcome to DTAgent
