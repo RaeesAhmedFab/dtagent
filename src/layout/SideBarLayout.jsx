@@ -43,7 +43,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import Logo from "@/assets/dtagent.png";
+import Logo from "@/assets/dtagent-logo.jpeg"
 import { AskAgentDrawer } from "../models/AskAgentDrawer";
 import { logout } from "../redux/apiSlice/authSlice";
 // ── NEW: import context ──────────────────────────────────────────

@@ -6,7 +6,8 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import Logo from "@/assets/dtagent.png"
+import Logo from "@/assets/dtagent-logo.jpeg"
+
 import { Shield } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 const LandingPage = () => {
