@@ -26,7 +26,7 @@ const ArticleDetail = ({
 
   if (isLoading) {
     return (
-      <div className="max-w-[740px] flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center h-[400px]">
         <Loader fullScreen={false} size={40} />
       </div>
     );

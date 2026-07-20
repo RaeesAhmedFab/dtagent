@@ -43,7 +43,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import Logo from "@/assets/dtagent-logo.jpeg"
+import Logo from "@/assets/dtagent-logo.jpeg";
 import { AskAgentDrawer } from "../models/AskAgentDrawer";
 import { logout } from "../redux/apiSlice/authSlice";
 // ── NEW: import context ──────────────────────────────────────────
@@ -303,7 +303,6 @@ export default function SidebarLayout({ role = "admin" }) {
   const location = useLocation();
   const dispatch = useDispatch();
 
-
   const config = ROLE_CONFIG[role] ?? ROLE_CONFIG.admin;
   const { nav, prefix, avatarColor, name, subtitle } = config;
 
@@ -346,9 +345,9 @@ export default function SidebarLayout({ role = "admin" }) {
     <>
       <SidebarHeader className="px-5 py-[22px] pb-4 border-b border-border gap-0">
         <div className="">
-          <img src={Logo} alt="Logo" className="" />
+          <img src={Logo} alt="Logo" className=" h-9 w-auto object-contain" />
           <div className="mt-1">
-            <h1 className="font-semibold">DTAgent</h1>
+            {/* <h1 className="font-semibold">DTAgent</h1> */}
             <p className="text-[11px] text-muted-foreground">{config.title}</p>
           </div>
         </div>
@@ -486,7 +485,7 @@ export default function SidebarLayout({ role = "admin" }) {
       </SidebarContent>
 
       <SidebarFooter className="px-[18px] py-3.5 border-t border-border">
-        <div className="flex items-center gap-[9px]">
+        <div className="flex items-center gap-3">
           <Avatar className="w-8 h-8 flex-shrink-0">
             <AvatarImage />
             <AvatarFallback
@@ -502,6 +501,19 @@ export default function SidebarLayout({ role = "admin" }) {
             </div>
             <div className="text-[11px] text-muted-foreground">{subtitle}</div>
           </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              dispatch(logout());
+              localStorage.removeItem("auth_data");
+              navigate("/login", { replace: true });
+            }}
+            title="Sign out"
+            className="w-9 h-9 rounded-[9px] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#e63946] cursor-pointer "
+          >
+            <LogOut />
+          </Button>
         </div>
       </SidebarFooter>
     </>
@@ -568,20 +580,6 @@ export default function SidebarLayout({ role = "admin" }) {
                     </div>
                   </div>
                 </div>
-
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => {
-                    dispatch(logout());
-                    localStorage.removeItem("auth_data");
-                    navigate("/login", { replace: true });
-                  }}
-                  title="Sign out"
-                  className="w-9 h-9 rounded-[9px] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#e63946] cursor-pointer "
-                >
-                  <LogOut />
-                </Button>
               </div>
             </header>
 

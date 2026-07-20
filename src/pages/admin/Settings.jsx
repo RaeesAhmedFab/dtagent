@@ -9,7 +9,7 @@ import AgentRateLimitsCard from "@/components/settings/AgentRateLimitsCard";
 import ApiCredentialsCard from "@/components/settings/ApiCredentialsCard";
 import SecurityCard from "@/components/settings/SecurityCard";
 import DangerZoneCard from "@/components/settings/DangerZoneCard";
-import { useGetSystemSettingQuery, useUpdateSystemSettingMutation } from "../../redux/Api/adminSetting";
+import { useGetSystemSettingQuery, useUpdateSystemSettingMutation,useGetAPiCredentialsQuery,useDangerZonetodayMutation,useDangerZoneresetMutation,useDangerZonepurgeMutation } from "../../redux/Api/adminSetting";
 const Settings = () => {
   const [scrapeTime, setScrapeTime] = useState('05:00');
   const [aiModel, setAiModel] = useState('gpt-4-turbo');
@@ -28,6 +28,7 @@ const Settings = () => {
   const [saved, setSaved] = useState(false);
   const { data: systemSettings, isLoading, isSuccess } = useGetSystemSettingQuery();
   const settings = systemSettings?.data;
+  const { data: apiCredentials, isLoading: isApiLoading, isSuccess: isApiSuccess, refetch: refetchApiCredentials } = useGetAPiCredentialsQuery();
 
   const [updateSystemSetting, { isLoading: isSaving }] = useUpdateSystemSettingMutation();
 
@@ -112,7 +113,12 @@ const Settings = () => {
         setDayCap={setDayCap}
       />
 
-      <ApiCredentialsCard />
+      <ApiCredentialsCard
+        apiCredentials={apiCredentials}
+        isLoading={isApiLoading}
+        isSuccess={isApiSuccess}
+        refetch={refetchApiCredentials}
+      />
 
       <SecurityCard
         requireYmSso={requireYmSso}
