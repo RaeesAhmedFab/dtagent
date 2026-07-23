@@ -1,4 +1,4 @@
-import { BookOpen, Sparkles, ExternalLink } from "lucide-react";
+import { BookOpen, Sparkles, ExternalLink, Star } from "lucide-react";
 import { TRENDING_CATS, TOP_SOURCES, CAT_STYLES } from "../mockdata/Digestdata";
 import { Card } from "@/components/ui/card";
 import { useDigestFilter } from "../pages/memeber/Digestfiltercontext";
@@ -37,13 +37,21 @@ export const ArticleActions = ({ source, originalUrl }) => (
   </div>
 );
 
+// ─── Featured badge (top-right) ───────────────────────────────────
+export const FeaturedBadge = () => (
+  <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">
+    <Star size={11} className="fill-amber-500 text-amber-500" /> Featured
+  </span>
+);
+
 // ─── Regular article card ─────────────────────────────────────────
 export const ArticleCard = ({ article, onClick }) => (
   <div
     onClick={() => onClick(article)}
-    className="bg-white border border-gray-200 rounded-xl p-4 md:p-5 cursor-pointer hover:shadow-md hover:border-blue-200 transition-all"
+    className="relative bg-white border border-gray-200 rounded-xl p-4 md:p-5 cursor-pointer hover:shadow-md hover:border-blue-200 transition-all"
   >
-    <div className="flex items-center gap-2 flex-wrap mb-3">
+    {article.is_featured && <FeaturedBadge />}
+    <div className="flex items-center gap-2 flex-wrap mb-3 pr-20">
       <SourceBadge sourceKey={article.sourceKey} />
       <span className="text-[12px] text-gray-400">{article.source}</span>
       <span className="text-gray-300">·</span>
@@ -60,10 +68,11 @@ export const ArticleCard = ({ article, onClick }) => (
 export const FeaturedCard = ({ article, onClick }) => (
   <div
     onClick={() => onClick(article)}
-    className="border-2 border-blue-200 rounded-xl p-4 md:p-6 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all mb-5"
+    className="relative border-2 border-blue-200 rounded-xl p-4 md:p-6 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all mb-5"
     style={{ background: "linear-gradient(135deg, #f0f6ff 0%, #fff 100%)" }}
   >
-    <div className="flex items-center gap-2 flex-wrap mb-3">
+    {article.is_featured && <FeaturedBadge />}
+    <div className="flex items-center gap-2 flex-wrap mb-3 pr-20">
       <SourceBadge sourceKey={article.sourceKey} />
       <span className="text-[12px] text-gray-400">{article.source}</span>
       <span className="text-gray-300">·</span>

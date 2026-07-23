@@ -15,6 +15,8 @@ import {
   Trash2,
   Check,
   Sparkles,
+  Star,
+  Highlighter,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -197,9 +199,13 @@ const ArticleList = ({
   const [removingItem, setRemovingItem] = useState(null);
   const [restoringItem, setRestoringItem] = useState(null);
   const [regeneratingItem, setRegeneratingItem] = useState(null);
+  const [featuringItem, setFeaturingItem] = useState(null);
+  const [highlightingItem, setHighlightingItem] = useState(null);
   const [removeError, setRemoveError] = useState("");
   const [restoreError, setRestoreError] = useState("");
   const [regenerateError, setRegenerateError] = useState("");
+  const [featureError, setFeatureError] = useState("");
+  const [highlightError, setHighlightError] = useState("");
 
   const [updateModerationStatus, { isLoading: isRemoving }] =
     useUpdateModerationStatusMutation();
@@ -230,6 +236,42 @@ const ArticleList = ({
       );
     } finally {
       setRegeneratingItem(null);
+    }
+  };
+
+  const handleToggleFeatured = async (item) => {
+    setFeaturingItem(item);
+    setFeatureError("");
+    try {
+      await updateModerationStatus({
+        id: item.id,
+        payload: { is_featured: !item.is_featured },
+      }).unwrap();
+    } catch (err) {
+      setFeatureError(
+        err?.data?.message ||
+          "Failed to update featured status. Please try again."
+      );
+    } finally {
+      setFeaturingItem(null);
+    }
+  };
+
+  const handleToggleHighlight = async (item) => {
+    setHighlightingItem(item);
+    setHighlightError("");
+    try {
+      await updateModerationStatus({
+        id: item.id,
+        payload: { is_highlight: !item.is_highlight },
+      }).unwrap();
+    } catch (err) {
+      setHighlightError(
+        err?.data?.message ||
+          "Failed to update highlight status. Please try again."
+      );
+    } finally {
+      setHighlightingItem(null);
     }
   };
 
@@ -373,8 +415,8 @@ const ArticleList = ({
                     className="flex flex-col md:grid gap-5 px-5 py-5"
                     style={{ gridTemplateColumns: "140px 1fr auto" }}
                   >
-                    <div>
-                      <p className="text-[13px] font-semibold text-gray-800 mb-0.5">
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-semibold text-gray-800 mb-0.5 break-words">
                         {source}
                       </p>
                       <p className="text-[12px] text-gray-400 mb-2.5">{time}</p>
@@ -401,6 +443,16 @@ const ArticleList = ({
                         <span>{reads} reads</span>
                         <span>·</span>
                         <StatusBadge status={item.status} />
+                        {item.is_featured && (
+                          <span className="inline-flex items-center gap-1 text-[12px] font-medium text-amber-700 bg-amber-100 rounded-full px-2.5 py-0.5">
+                            <Star size={11} className="fill-amber-500 text-amber-500" /> Featured
+                          </span>
+                        )}
+                        {item.is_highlight && (
+                          <span className="inline-flex items-center gap-1 text-[12px] font-medium text-violet-700 bg-violet-100 rounded-full px-2.5 py-0.5">
+                            <Highlighter size={11} className="text-violet-500" /> Highlighted
+                          </span>
+                        )}
                       </div>
                       {item.status === "removed" && item.remove_reason && (
                         <p className="text-[12px] text-gray-400 mt-2 italic">
@@ -423,6 +475,40 @@ const ArticleList = ({
                           <>
                             <RefreshCw size={13} /> Regenerate
                           </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleToggleFeatured(item)}
+                        disabled={featuringItem?.id === item.id}
+                        className={`inline-flex items-center gap-1.5 text-[12px] border rounded-md px-2.5 py-1.5 whitespace-nowrap cursor-pointer disabled:opacity-50 ${
+                          item.is_featured
+                            ? "text-amber-700 border-amber-200 bg-amber-50 hover:bg-amber-100"
+                            : "text-gray-500 border-gray-200 hover:bg-gray-50"
+                        }`}
+                      >
+                        {featuringItem?.id === item.id ? (
+                          <><RefreshCw size={13} className="animate-spin" /> Saving...</>
+                        ) : item.is_featured ? (
+                          <><Star size={13} className="fill-amber-500 text-amber-500" /> Remove Featured</>
+                        ) : (
+                          <><Star size={13} /> Mark as Featured</>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleToggleHighlight(item)}
+                        disabled={highlightingItem?.id === item.id}
+                        className={`inline-flex items-center gap-1.5 text-[12px] border rounded-md px-2.5 py-1.5 whitespace-nowrap cursor-pointer disabled:opacity-50 ${
+                          item.is_highlight
+                            ? "text-violet-700 border-violet-200 bg-violet-50 hover:bg-violet-100"
+                            : "text-gray-500 border-gray-200 hover:bg-gray-50"
+                        }`}
+                      >
+                        {highlightingItem?.id === item.id ? (
+                          <><RefreshCw size={13} className="animate-spin" /> Saving...</>
+                        ) : item.is_highlight ? (
+                          <><Highlighter size={13} className="text-violet-500" /> Remove Highlight</>
+                        ) : (
+                          <><Highlighter size={13} /> Mark as Highlight</>
                         )}
                       </button>
                       {item.status === "removed" ? (
@@ -512,6 +598,12 @@ const ArticleList = ({
       )}
       {regenerateError && (
         <p className="text-sm text-red-500 mt-2 text-center">{regenerateError}</p>
+      )}
+      {featureError && (
+        <p className="text-sm text-red-500 mt-2 text-center">{featureError}</p>
+      )}
+      {highlightError && (
+        <p className="text-sm text-red-500 mt-2 text-center">{highlightError}</p>
       )}
     </>
   );

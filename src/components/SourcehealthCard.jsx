@@ -18,6 +18,14 @@ const statusStyles = {
   red:    { dot: "bg-red-500",    badge: "bg-red-100 text-red-800"      },
 };
 
+// Color the row by article count: 0 → red, 1-4 → warning, 5+ → green.
+const statusFromCount = (count) => {
+  const c = Number(count) || 0;
+  if (c === 0) return "red";
+  if (c < 5) return "orange";
+  return "green";
+};
+
 const SourceHealth = ({ data: propData, healthyCount, totalCount }) => {
   const sources = propData || defaultData;
   const healthy = healthyCount ?? sources.filter(s => s.status === "green").length;
@@ -36,7 +44,7 @@ const SourceHealth = ({ data: propData, healthyCount, totalCount }) => {
 
         <CardContent className="p-0">
           {sources.map((item, index) => {
-            const s = statusStyles[item.status] || statusStyles.green;
+            const s = statusStyles[statusFromCount(item.count)];
             return (
               <div key={item.badge + index}>
                 <div className="flex items-center gap-3 py-3 px-5 hover:bg-gray-100 ">

@@ -9,6 +9,13 @@ const analyticsApi = apiSlice.injectEndpoints({
       }),
       providesTags: ["Analytics"],
     }),
+    getStaffDashboard: builder.query({
+      query: () => ({
+        url: "/analytics/staff-dashboard/",
+        method: "GET",
+      }),
+      providesTags: ["Analytics"],
+    }),
     getDauTrend: builder.query({
       query: (days = 7) => ({
         url: `/analytics/dau-trend/?days=${days}`,
@@ -35,6 +42,7 @@ const analyticsApi = apiSlice.injectEndpoints({
 
 export const {
   useGetAnalyticsCardsQuery,
+  useGetStaffDashboardQuery,
   useGetDauTrendQuery,
   useGetSourceEngagementQuery,
   useGetAgentTopicsQuery,

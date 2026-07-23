@@ -44,7 +44,7 @@ const DangerZoneCard = () => {
       loading: isResetting,
     },
     {
-      label: "Purge removed articles (72-hour hold expired)",
+      label: "Purge removed articles (30 days hold expired)",
       desc: "Permanently deletes articles that have been in the removed queue for over 72 hours. Soft-delete window is 72 hours per AD-03; articles in hold are not affected.",
       btn: "Purge expired",
       icon: Trash2,

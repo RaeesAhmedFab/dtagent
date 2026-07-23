@@ -76,6 +76,20 @@ const formatDate = (value) => {
   return d.toISOString().slice(0, 10);
 };
 
+// Whole months elapsed between `value` and now (null if unparseable).
+const monthsSince = (value) => {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  const now = new Date();
+  let months =
+    (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+  if (now.getDate() < d.getDate()) months -= 1;
+  return Math.max(0, months);
+};
+
+const ROTATION_MONTHS = 6;
+
 const StatusPill = ({ status }) => {
   const map = {
     active: { dot: "bg-emerald-500", text: "text-emerald-600", label: "Active" },
@@ -117,6 +131,19 @@ const ApiCredentialsCard = ({ apiCredentials, refetch }) => {
 
   const getApiCred = (serviceName) =>
     apiByService.get(String(serviceName).trim().toLowerCase());
+
+  // Services whose credential was last rotated >= ROTATION_MONTHS months ago.
+  const rotationWarnings = CREDENTIALS.map((c) => {
+    const apiCred = getApiCred(c.service_name);
+    if (!apiCred?.last_updated) return null;
+    const months = monthsSince(apiCred.last_updated);
+    if (months == null || months < ROTATION_MONTHS) return null;
+    return {
+      service: c.service,
+      date: formatDate(apiCred.last_updated),
+      months,
+    };
+  }).filter(Boolean);
 
   const openDialog = (row, editing) => {
     setActiveRow(row);
@@ -272,13 +299,18 @@ const ApiCredentialsCard = ({ apiCredentials, refetch }) => {
         </table>
       </div>
 
-      <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 mt-5">
-        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-500" />
-        <p className="text-xs text-amber-800 leading-relaxed">
-          Scraper proxy key last rotated 2025-09-20 — 8 months ago. Rotation
-          recommended every 6 months.
-        </p>
-      </div>
+      {rotationWarnings.map((w) => (
+        <div
+          key={w.service}
+          className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 mt-5"
+        >
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-500" />
+          <p className="text-xs text-amber-800 leading-relaxed">
+            {w.service} key last rotated {w.date} — {w.months} months ago.
+            Rotation recommended every {ROTATION_MONTHS} months.
+          </p>
+        </div>
+      ))}
 
       {/* Shared create/update dialog — fields depend on the selected service */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

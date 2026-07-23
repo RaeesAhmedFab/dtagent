@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { Loader2 } from "lucide-react";
@@ -22,15 +22,21 @@ const MembershipCallback = () => {
   const code = searchParams.get("code");
 
   const [triggerYmCallback, { isFetching: isLoading }] = useLazyYmCallbackQuery();
+  // The OAuth `code` is single-use — guard against exchanging it more than once
+  // (dev fast-refresh / re-render / StrictMode) which would fail the 2nd call
+  // and bounce the user back to /login even after a successful first exchange.
+  const hasExchanged = useRef(false);
 
   useEffect(() => {
-    const exchangeCode = async () => {
-      if (!code) {
-        toast.error("Missing authorization code.");
-        navigate("/login");
-        return;
-      }
+    if (!code) {
+      toast.error("Missing authorization code.");
+      navigate("/login");
+      return;
+    }
+    if (hasExchanged.current) return;
+    hasExchanged.current = true;
 
+    const exchangeCode = async () => {
       try {
         const response = await triggerYmCallback(code).unwrap();
 
@@ -77,7 +83,7 @@ const MembershipCallback = () => {
     };
 
     exchangeCode();
-  }, [code, triggerYmCallback, navigate]);
+  }, [code, triggerYmCallback, navigate, dispatch]);
 
   return (
     <div className="min-h-screen w-full bg-[#eef0f4] flex items-center justify-center p-4">

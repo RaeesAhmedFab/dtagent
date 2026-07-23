@@ -54,6 +54,7 @@ const mapArticleItem = (item) => {
     desc: item.ai_description || "",
     trending: item.status === "live",
     status: item.status,
+    is_featured: item.is_featured,
     ai_article_categories: item.ai_article_categories,
     ai_title: item.ai_title,
     ai_description: item.ai_description,
